@@ -1,0 +1,45 @@
+{% extends 'base.html' %}
+
+{% block title %}إضافة سنة مالية جديدة{% endblock %}
+
+{% block content %}
+<h1 class="h3 mb-3">إضافة سنة مالية جديدة</h1>
+
+<div class="row">
+    <div class="col-md-8 col-lg-6">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('add_financial_year') }}">
+
+                    <div class="mb-3">
+                        <label for="year_name" class="form-label">اسم السنة المالية <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="year_name" name="year_name" value="{{ form_data.year_name if form_data else '' }}" required placeholder="مثال: 2024 أو 2023-2024">
+                        {# يمكنك إضافة رسائل خطأ هنا #}
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="start_date" class="form-label">تاريخ البدء <span class="text-danger">*</span></label>
+                            <input type="date" class="form-control" id="start_date" name="start_date" value="{{ form_data.start_date if form_data else '' }}" required>
+                            {# يمكنك إضافة رسائل خطأ هنا #}
+                        </div>
+                        <div class="col-md-6">
+                            <label for="end_date" class="form-label">تاريخ الانتهاء <span class="text-danger">*</span></label>
+                            <input type="date" class="form-control" id="end_date" name="end_date" value="{{ form_data.end_date if form_data else '' }}" required>
+                            {# يمكنك إضافة رسائل خطأ هنا #}
+                        </div>
+                    </div>
+
+                    {# الحقول is_active و is_closed يتم تعيينها تلقائياً في app.py عند الإضافة #}
+                    {# لا نحتاج لعرضها في نموذج الإضافة عادةً #}
+
+                    <div class="d-flex justify-content-end">
+                         <a href="{{ url_for('manage_financial_years') }}" class="btn btn-secondary me-2">إلغاء</a>
+                        <button type="submit" class="btn btn-primary">إضافة السنة المالية</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

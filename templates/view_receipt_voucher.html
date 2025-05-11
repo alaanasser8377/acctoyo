@@ -1,0 +1,174 @@
+{% extends 'base.html' %}
+
+{% block title %}عرض سند قبض{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">عرض سند قبض رقم {{ voucher.voucher_number }}</h3>
+                    <div class="card-tools">
+                        <a href="{{ url_for('list_receipt_vouchers') }}" class="btn btn-secondary btn-sm">
+                            <i class="bi bi-arrow-right"></i> العودة إلى القائمة
+                        </a>
+                        {% if not voucher.is_posted %}
+                        <a href="{{ url_for('edit_receipt_voucher', voucher_id=voucher.id) }}" class="btn btn-primary btn-sm">
+                            <i class="bi bi-pencil"></i> تعديل
+                        </a>
+                        <a href="{{ url_for('post_receipt_voucher', voucher_id=voucher.id) }}" class="btn btn-success btn-sm">
+                            <i class="bi bi-check"></i> ترحيل
+                        </a>
+                        <a href="{{ url_for('delete_receipt_voucher', voucher_id=voucher.id) }}" class="btn btn-danger btn-sm" onclick="return confirm('هل أنت متأكد من حذف هذا السند؟');">
+                            <i class="bi bi-trash"></i> حذف
+                        </a>
+                        {% else %}
+                        <a href="{{ url_for('print_receipt_voucher', voucher_id=voucher.id) }}" class="btn btn-secondary btn-sm" target="_blank">
+                            <i class="bi bi-printer"></i> طباعة
+                        </a>
+                        {% endif %}
+                        {% if journal_id %}
+                        <a href="{{ url_for('view_journal_voucher', voucher_id=journal_id) }}" class="btn btn-info btn-sm">
+                            <i class="bi bi-journal-text"></i> عرض قيد اليومية
+                        </a>
+                        {% endif %}
+                        {% if voucher.is_posted %}
+                        <a href="{{ url_for('unpost_receipt_voucher', voucher_id=voucher.id) }}" class="btn btn-warning btn-sm" onclick="return confirm('هل أنت متأكد من إلغاء ترحيل هذا السند؟');">
+                            <i class="bi bi-arrow-counterclockwise"></i> إلغاء الترحيل
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <table class="table table-bordered">
+                                <tr>
+                                    <th style="width: 30%;">رقم السند</th>
+                                    <td>{{ voucher.voucher_number }}</td>
+                                </tr>
+                                <tr>
+                                    <th>تاريخ السند</th>
+                                    <td>
+                                        {% if voucher.date %}
+                                            {{ voucher.date }}
+                                        {% elif voucher.voucher_date %}
+                                            {{ voucher.voucher_date }}
+                                        {% else %}
+                                            <span class="text-muted">غير محدد</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>الدافع</th>
+                                    <td>{{ voucher.payer }}</td>
+                                </tr>
+                                <tr>
+                                    <th>المبلغ</th>
+                                    <td>{{ "{:,.2f}".format(voucher.amount) }}</td>
+                                </tr>
+                                <tr>
+                                    <th>طريقة الدفع</th>
+                                    <td>
+                                        {% if voucher.payment_method == 'cash' %}
+                                            نقداً
+                                        {% elif voucher.payment_method == 'check' %}
+                                            شيك رقم {{ voucher.check_number }}
+                                        {% elif voucher.payment_method == 'bank_transfer' %}
+                                            تحويل بنكي
+                                        {% else %}
+                                            {{ voucher.payment_method }}
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% if voucher.description %}
+                                <tr>
+                                    <th>الوصف</th>
+                                    <td>{{ voucher.description }}</td>
+                                </tr>
+                                {% endif %}
+                            </table>
+                        </div>
+                        <div class="col-md-6">
+                            <table class="table table-bordered">
+                                <tr>
+                                    <th style="width: 30%;">السنة المالية</th>
+                                    <td>{{ voucher.financial_year_name }}</td>
+                                </tr>
+                                <tr>
+                                    <th>الحالة</th>
+                                    <td>
+                                        {% if voucher.is_posted %}
+                                            <span class="badge bg-success">مرحّل</span>
+                                        {% else %}
+                                            <span class="badge bg-warning">غير مرحّل</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>تم الإنشاء بواسطة</th>
+                                    <td>{{ voucher.created_by_username }}</td>
+                                </tr>
+                                <tr>
+                                    <th>تاريخ الإنشاء</th>
+                                    <td>{{ voucher.created_at }}</td>
+                                </tr>
+                                {% if voucher.is_posted %}
+                                <tr>
+                                    <th>تم الترحيل بواسطة</th>
+                                    <td>{{ voucher.posted_by_username }}</td>
+                                </tr>
+                                <tr>
+                                    <th>تاريخ الترحيل</th>
+                                    <td>{{ voucher.posted_at }}</td>
+                                </tr>
+                                {% endif %}
+                            </table>
+                        </div>
+                    </div>
+
+                    {% if journal %}
+                    <div class="row mt-4">
+                        <div class="col-12">
+                            <h4>تفاصيل القيد المحاسبي</h4>
+                            <div class="table-responsive">
+                                <table class="table table-bordered table-striped">
+                                    <thead>
+                                        <tr>
+                                            <th>الحساب</th>
+                                            <th>الوصف</th>
+                                            <th>مركز التكلفة</th>
+                                            <th>مدين</th>
+                                            <th>دائن</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for detail in journal_details %}
+                                        <tr>
+                                            <td>{{ detail.account_number }} - {{ detail.account_name }}</td>
+                                            <td>{{ detail.description }}</td>
+                                            <td>{{ detail.cost_center_name or '-' }}</td>
+                                            <td class="text-left">{{ "{:,.2f}".format(detail.debit) if detail.debit else '-' }}</td>
+                                            <td class="text-left">{{ "{:,.2f}".format(detail.credit) if detail.credit else '-' }}</td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                    <tfoot>
+                                        <tr class="font-weight-bold">
+                                            <td colspan="3" class="text-left">المجموع</td>
+                                            <td class="text-left">{{ "{:,.2f}".format(journal_details|sum(attribute='debit')) }}</td>
+                                            <td class="text-left">{{ "{:,.2f}".format(journal_details|sum(attribute='credit')) }}</td>
+                                        </tr>
+                                    </tfoot>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

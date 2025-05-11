@@ -1,0 +1,587 @@
+{% extends 'base.html' %}
+
+{% block title %}إضافة سند صرف جديد{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>إضافة سند صرف جديد</h2>
+        <div>
+            <a href="{{ url_for('list_payment_vouchers') }}" class="btn btn-secondary">
+                <i class="bi bi-arrow-right"></i> العودة إلى القائمة
+            </a>
+        </div>
+    </div>
+
+    {# <!-- إزالة السطر التالي: {% include 'includes/flash_messages.html' %} --> #}
+
+    <div class="card shadow">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">بيانات سند الصرف</h5>
+        </div>
+        <div class="card-body">
+            <form method="post" action="{{ url_for('add_payment_voucher') }}" id="voucher-form">
+                <div class="row mb-3">
+                    <div class="col-md-4">
+                        <label for="voucher_number" class="form-label">رقم السند <span class="text-danger">*</span></label>
+                        <input type="number" class="form-control" id="voucher_number" name="voucher_number" value="{{ next_number }}" readonly>
+                        <small class="text-muted">يتم إنشاء الرقم تلقائياً</small>
+                    </div>
+                    <div class="col-md-4">
+                        <label for="voucher_date" class="form-label">تاريخ السند <span class="text-danger">*</span></label>
+                        <input type="date" class="form-control" id="voucher_date" name="voucher_date" value="{{ today }}" required>
+                    </div>
+                    <div class="col-md-4">
+                        <label for="financial_year_id_display" class="form-label">السنة المالية <span class="text-danger">*</span></label>
+                        <select class="form-select" id="financial_year_id_display" disabled>
+                            {% for year in financial_years %}
+                            <option value="{{ year.id }}" {% if year.is_active == 1 %}selected{% endif %}>{{ year.year_name }}</option>
+                            {% endfor %}
+                        </select>
+                        <!-- إضافة حقل مخفي لإرسال القيمة -->
+                        <input type="hidden" id="financial_year_id" name="financial_year_id" value="{{ financial_years|selectattr('is_active', 'eq', 1)|map(attribute='id')|first }}">
+                    </div>
+                </div>
+                
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label for="beneficiary" class="form-label">المستفيد <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="beneficiary" name="beneficiary" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="payment_method" class="form-label">طريقة الدفع <span class="text-danger">*</span></label>
+                        <select class="form-select" id="payment_method" name="payment_method" required onchange="toggleCheckFields()">
+                            <option value="نقدي">نقدي</option>
+                            <option value="شيك">شيك</option>
+                            <option value="تحويل بنكي">تحويل بنكي</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div id="checkFields" class="row mb-3" style="display: none;">
+                    <div class="col-md-6">
+                        <label for="check_number" class="form-label">رقم الشيك</label>
+                        <input type="text" class="form-control" id="check_number" name="check_number">
+                    </div>
+                    <div class="col-md-6">
+                        <label for="check_date" class="form-label">تاريخ الشيك</label>
+                        <input type="date" class="form-control" id="check_date" name="check_date">
+                    </div>
+                </div>
+                
+                <div class="row mb-3">
+                    <div class="col-md-12">
+                        <label for="description" class="form-label">البيان الرئيسي <span class="text-danger">*</span></label>
+                        <textarea class="form-control" id="description" name="description" rows="3" required></textarea>
+                    </div>
+                </div>
+                
+                <!-- تم إزالة حقل السنة المالية المكرر من هنا -->
+                
+                <!-- بداية قسم تفاصيل القيد -->
+                <div class="card mb-4 shadow-sm">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <span>بنود القيد</span>
+                        <div>
+                            <small class="text-muted ms-2">عدد الحسابات المتاحة: {{ accounts|length if accounts else 0 }}</small>
+                            <button type="button" id="add-row-btn" class="btn btn-sm btn-outline-success">
+                                <i class="bi bi-plus-lg"></i> إضافة بند
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-sm table-bordered table-hover mb-0" id="voucher-details-table">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th style="width: 25%;">الحساب <span class="text-danger">*</span></th>
+                                        <th style="width: 12%;">مدين <span class="text-danger">*</span></th>
+                                        <th style="width: 12%;">دائن <span class="text-danger">*</span></th>
+                                        <th style="width: 30%;">الوصف</th>
+                                        <th style="width: 12%;">مركز التكلفة</th>
+                                        <th style="width: 5%;" class="text-center">إجراء</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="details-tbody">
+                                    <!-- سيتم إضافة الصفوف هنا بواسطة JavaScript -->
+                                    <!-- مثال لصف واحد (سيتم استخدامه كقالب في JS) -->
+                                    <tr class="detail-row" style="display: none;" id="row-template">
+                                        <td>
+                                            <div class="input-group input-group-sm">
+                                                <select name="account_id[]" class="form-select form-select-sm account-select" required disabled>
+                                                    <option value="" selected disabled>-- اختر الحساب --</option>
+                                                    {% if accounts %}
+                                                        {% for account in accounts %}
+                                                        <option value="{{ account.id }}">{{ account.code }} - {{ account.name }}</option>
+                                                        {% endfor %}
+                                                    {% else %}
+                                                        <option value="" disabled>لا توجد حسابات متاحة</option>
+                                                    {% endif %}
+                                                </select>
+                                                <button type="button" class="btn btn-outline-secondary search-account-btn" title="بحث عن حساب" disabled>
+                                                    <i class="bi bi-search"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                        <td><input type="text" name="debit[]" class="form-control form-control-sm debit-input text-end" value="0.00" pattern="^\d*([.,]\d+)?$" disabled></td>
+                                        <td><input type="text" name="credit[]" class="form-control form-control-sm credit-input text-end" value="0.00" pattern="^\d*([.,]\d+)?$" disabled></td>
+                                        <td><input type="text" name="detail_description[]" class="form-control form-control-sm" disabled></td>
+                                        <td>
+                                            <select name="cost_center_id[]" class="form-select form-select-sm" disabled>
+                                                <option value="None" selected>-- لا يوجد --</option>
+                                                {% for cc in cost_centers %}
+                                                <option value="{{ cc.id }}">{{ cc.name }}</option>
+                                                {% endfor %}
+                                            </select>
+                                        </td>
+                                        <td class="text-center">
+                                            <button type="button" class="btn btn-sm btn-outline-danger remove-row-btn" title="حذف البند" disabled><i class="bi bi-trash"></i></button>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                                <tfoot>
+                                    <tr class="table-light">
+                                        <th class="text-end">الإجمالي:</th>
+                                        <td class="text-end"><strong id="total-debit">0.00</strong></td>
+                                        <td class="text-end"><strong id="total-credit">0.00</strong></td>
+                                        <td colspan="3" id="balance-status" class="text-center"></td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                <!-- نهاية قسم تفاصيل القيد -->
+                
+                <div class="text-center mt-4">
+                    <button type="submit" class="btn btn-primary px-5" id="save-voucher-btn" disabled>
+                        <i class="bi bi-save"></i> حفظ
+                    </button>
+                    <a href="{{ url_for('list_payment_vouchers') }}" class="btn btn-secondary px-5">
+                        <i class="bi bi-x-lg"></i> إلغاء
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    // تبديل حقول الشيك
+    function toggleCheckFields() {
+        var paymentMethod = document.getElementById('payment_method').value;
+        var checkFields = document.getElementById('checkFields');
+        
+        if (paymentMethod === 'شيك') {
+            checkFields.style.display = 'flex';
+            document.getElementById('check_number').setAttribute('required', '');
+            document.getElementById('check_date').setAttribute('required', '');
+        } else {
+            checkFields.style.display = 'none';
+            document.getElementById('check_number').removeAttribute('required');
+            document.getElementById('check_date').removeAttribute('required');
+        }
+    }
+    
+    // دالة لتحميل الحسابات
+    function loadAccounts() {
+        fetch('/api/accounts')
+            .then(response => response.json())
+            .then(data => {
+                if (data.accounts && data.accounts.length > 0) {
+                    // تحديث قوائم الحسابات في جميع الصفوف
+                    const accountSelects = document.querySelectorAll('.account-select');
+                    accountSelects.forEach(select => {
+                        // الاحتفاظ بالخيار الأول
+                        const firstOption = select.options[0];
+                        // مسح باقي الخيارات
+                        select.innerHTML = '';
+                        select.appendChild(firstOption);
+                        
+                        // إضافة الحسابات الجديدة
+                        data.accounts.forEach(account => {
+                            const option = document.createElement('option');
+                            option.value = account.id;
+                            option.textContent = `${account.code} - ${account.name}`;
+                            select.appendChild(option);
+                        });
+                    });
+                    
+                    alert('تم تحميل الحسابات بنجاح: ' + data.accounts.length + ' حساب');
+                } else {
+                    alert('لا توجد حسابات متاحة');
+                }
+            })
+            .catch(error => {
+                console.error('خطأ في تحميل الحسابات:', error);
+                alert('حدث خطأ أثناء تحميل الحسابات');
+            });
+    }
+    
+    document.addEventListener('DOMContentLoaded', function() {
+        const addRowBtn = document.getElementById('add-row-btn');
+        const detailsTbody = document.getElementById('details-tbody');
+        const rowTemplate = document.getElementById('row-template');
+        const totalDebitEl = document.getElementById('total-debit');
+        const totalCreditEl = document.getElementById('total-credit');
+        const balanceStatusEl = document.getElementById('balance-status');
+        const saveBtn = document.getElementById('save-voucher-btn');
+        const voucherForm = document.getElementById('voucher-form');
+
+        // --- دالة لإضافة صف جديد ---
+        function addRow() {
+            const newRow = rowTemplate.cloneNode(true); // استنساخ القالب
+            newRow.style.display = ''; // إظهار الصف الجديد
+            newRow.removeAttribute('id'); // إزالة ID القالب
+            
+            // تفعيل الحقول في الصف الجديد
+            newRow.querySelectorAll('input, select, button').forEach(el => el.disabled = false);
+            
+            // نسخ الوصف من السطر السابق إذا كان موجودًا
+            const existingRows = detailsTbody.querySelectorAll('tr.detail-row:not([id="row-template"])');
+            if (existingRows.length > 0) {
+                // الحصول على آخر صف موجود
+                const lastRow = existingRows[existingRows.length - 1];
+                // الحصول على وصف السطر السابق
+                const lastDescription = lastRow.querySelector('input[name="detail_description[]"]').value;
+                // تعيين وصف السطر الجديد ليكون نفس وصف السطر السابق
+                newRow.querySelector('input[name="detail_description[]"]').value = lastDescription;
+            }
+            
+            detailsTbody.appendChild(newRow);
+            attachRowEventListeners(newRow); // ربث الأحداث بالصف الجديد
+            updateTotals(); // تحديث الإجماليات
+        }
+
+        // --- دالة لحذف صف ---
+        function removeRow(button) {
+            const rowToRemove = button.closest('tr');
+            if (rowToRemove) {
+                rowToRemove.remove();
+                updateTotals(); // تحديث الإجماليات بعد الحذف
+            }
+        }
+
+        // --- دالة لتحديث الإجماليات والتحقق من التوازن ---
+        function updateTotals() {
+            let totalDebit = 0;
+            let totalCredit = 0;
+            const rows = detailsTbody.querySelectorAll('tr.detail-row:not([id="row-template"])'); // الحصول على كل الصفوف الفعلية
+
+            rows.forEach(row => {
+                const debitInput = row.querySelector('.debit-input');
+                const creditInput = row.querySelector('.credit-input');
+                // تحويل القيم النصية إلى أرقام مع التعامل مع الفواصل العشرية المختلفة
+                const debitValue = parseFloat(debitInput.value.replace(',', '.')) || 0;
+                const creditValue = parseFloat(creditInput.value.replace(',', '.')) || 0;
+                totalDebit += debitValue;
+                totalCredit += creditValue;
+            });
+
+            totalDebitEl.textContent = totalDebit.toFixed(2);
+            totalCreditEl.textContent = totalCredit.toFixed(2);
+
+            // التحقق من التوازن
+            if (rows.length === 0) {
+                balanceStatusEl.textContent = '';
+                balanceStatusEl.className = 'text-center'; // إعادة التعيين
+                saveBtn.disabled = true; // لا يمكن الحفظ بدون بنود
+            } else {
+                const diff = totalDebit - totalCredit;
+                if (Math.abs(diff) < 0.01) { // التسامح مع فروق صغيرة جداً بسبب الفاصلة العشرية
+                    balanceStatusEl.textContent = 'متوازن ✓';
+                    balanceStatusEl.className = 'text-center text-success';
+                    saveBtn.disabled = false; // تمكين زر الحفظ
+                } else {
+                    balanceStatusEl.textContent = `غير متوازن (الفرق: ${Math.abs(diff).toFixed(2)})`;
+                    balanceStatusEl.className = 'text-center text-danger';
+                    saveBtn.disabled = true; // تعطيل زر الحفظ
+                }
+            }
+        }
+
+        // --- دالة لربث الأحداث بالصف ---
+        function attachRowEventListeners(row) {
+            // ربث حدث النقر على زر الحذف
+            const removeBtn = row.querySelector('.remove-row-btn');
+            if (removeBtn) {
+                removeBtn.addEventListener('click', function() {
+                    removeRow(this);
+                });
+            }
+
+            // ربث أحداث تغيير قيم المدين والدائن
+            const debitInput = row.querySelector('.debit-input');
+            const creditInput = row.querySelector('.credit-input');
+
+            if (debitInput) {
+                debitInput.addEventListener('input', function() {
+                    // إذا تم إدخال قيمة في المدين، يتم تصفير الدائن
+                    if (parseFloat(this.value) > 0) {
+                        creditInput.value = '0.00';
+                    }
+                    updateTotals();
+                });
+            }
+
+            if (creditInput) {
+                creditInput.addEventListener('input', function() {
+                    // إذا تم إدخال قيمة في الدائن، يتم تصفير المدين
+                    if (parseFloat(this.value) > 0) {
+                        debitInput.value = '0.00';
+                    }
+                    updateTotals();
+                });
+            }
+            
+            // ربث حدث النقر على زر البحث عن الحساب
+            const searchBtn = row.querySelector('.search-account-btn');
+            if (searchBtn) {
+                searchBtn.addEventListener('click', function() {
+                    // فتح نافذة البحث عن الحسابات
+                    const accountSelect = this.closest('.input-group').querySelector('.account-select');
+                    openAccountSearchModal(accountSelect);
+                });
+            }
+        }
+
+        // دالة لفتح نافذة البحث عن الحسابات
+        function openAccountSearchModal(accountSelect) {
+            // إنشاء النافذة المنبثقة إذا لم تكن موجودة
+            let searchModal = document.getElementById('accountSearchModal');
+            if (!searchModal) {
+                searchModal = document.createElement('div');
+                searchModal.id = 'accountSearchModal';
+                searchModal.className = 'modal fade';
+                searchModal.setAttribute('tabindex', '-1');
+                searchModal.setAttribute('aria-labelledby', 'accountSearchModalLabel');
+                searchModal.setAttribute('aria-hidden', 'true');
+                
+                searchModal.innerHTML = `
+                    <div class="modal-dialog modal-dialog-centered">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="accountSearchModalLabel">بحث عن حساب</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="إغلاق"></button>
+                            </div>
+                            <div class="modal-body">
+                                <div class="mb-3">
+                                    <label for="account-search-input" class="form-label">ابحث بالاسم أو الرمز</label>
+                                    <input type="text" class="form-control" id="account-search-input" placeholder="اكتب للبحث...">
+                                </div>
+                                <div class="search-results" style="max-height: 300px; overflow-y: auto;">
+                                    <table class="table table-sm table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th>الرمز</th>
+                                                <th>الاسم</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="account-search-results">
+                                            <!-- ستتم إضافة النتائج هنا -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                document.body.appendChild(searchModal);
+            }
+            
+            // تخزين مرجع للحقل المستهدف
+            const debitInput = accountSelect.closest('tr').querySelector('.debit-input');
+            
+            // تهيئة المودال
+            const modalInstance = new bootstrap.Modal(searchModal);
+            
+            // الحصول على جميع الحسابات من القائمة المنسدلة
+            const accounts = [];
+            for (let i = 0; i < accountSelect.options.length; i++) {
+                if (accountSelect.options[i].value && accountSelect.options[i].value !== '') {
+                    accounts.push({
+                        id: accountSelect.options[i].value,
+                        text: accountSelect.options[i].text
+                    });
+                }
+            }
+            
+            // تحديد عناصر البحث
+            const searchInput = searchModal.querySelector('#account-search-input');
+            const searchResults = searchModal.querySelector('#account-search-results');
+            
+            // دالة البحث
+            function performSearch() {
+                const searchTerm = searchInput.value.toLowerCase();
+                searchResults.innerHTML = '';
+                
+                accounts.filter(account => 
+                    account.text.toLowerCase().includes(searchTerm)
+                ).forEach(account => {
+                    const searchRow = document.createElement('tr');
+                    searchRow.innerHTML = `
+                        <td>${account.text.split(' - ')[0]}</td>
+                        <td>${account.text.split(' - ')[1]}</td>
+                    `;
+                    searchRow.style.cursor = 'pointer';
+                    searchRow.addEventListener('click', function() {
+                        accountSelect.value = account.id;
+                        modalInstance.hide();
+                        
+                        // الانتقال التلقائي إلى حقل المدين بعد اختيار الحساب
+                        if (debitInput) {
+                            setTimeout(() => {
+                                debitInput.focus();
+                                debitInput.select(); // تحديد النص الموجود للتسهيل
+                            }, 100); // تأخير قصير للتأكد من إغلاق المودال أولاً
+                        }
+                    });
+                    searchResults.appendChild(searchRow);
+                });
+            }
+            
+            // ربث حدث البحث
+            searchInput.addEventListener('input', performSearch);
+            
+            // تنفيذ البحث الأولي (عرض كل الحسابات)
+            performSearch();
+            
+            // عرض المودال
+            modalInstance.show();
+            
+            // التركيز على حقل البحث
+            searchModal.addEventListener('shown.bs.modal', function () {
+                searchInput.focus();
+            });
+        }
+        
+        // دالة للبحث عن الحسابات
+        function searchAccounts(query) {
+            fetch(`/api/accounts?q=${encodeURIComponent(query)}`)
+                .then(response => response.json())
+                .then(data => {
+                    const resultsContainer = document.getElementById('accountSearchResults');
+                    resultsContainer.innerHTML = '';
+                    
+                    if (data.accounts && data.accounts.length > 0) {
+                        data.accounts.forEach(account => {
+                            const row = document.createElement('tr');
+                            row.innerHTML = `
+                                <td>${account.code}</td>
+                                <td>${account.name}</td>
+                                <td>${account.type || '-'}</td>
+                                <td>
+                                    <button type="button" class="btn btn-sm btn-primary select-account-btn" 
+                                            data-account-id="${account.id}" 
+                                            data-account-code="${account.code}" 
+                                            data-account-name="${account.name}">
+                                        اختيار
+                                    </button>
+                                </td>
+                            `;
+                            resultsContainer.appendChild(row);
+                        });
+                        
+                        // إضافة مستمعي الأحداث لأزرار الاختيار
+                        document.querySelectorAll('.select-account-btn').forEach(btn => {
+                            btn.addEventListener('click', function() {
+                                const accountId = this.getAttribute('data-account-id');
+                                const accountCode = this.getAttribute('data-account-code');
+                                const accountName = this.getAttribute('data-account-name');
+                                
+                                // الحصول على مرجع لقائمة الحسابات المستهدفة
+                                const targetSelectId = document.getElementById('accountSearchModal').getAttribute('data-target-select');
+                                const targetSelect = document.getElementById(targetSelectId);
+                                
+                                // تحديث القائمة المنسدلة
+                                if (targetSelect) {
+                                    // التحقق مما إذا كانت القيمة موجودة بالفعل
+                                    let optionExists = false;
+                                    let optionIndex = -1;
+                                    
+                                    for (let i = 0; i < targetSelect.options.length; i++) {
+                                        if (targetSelect.options[i].value === accountId) {
+                                            optionIndex = i;
+                                            optionExists = true;
+                                            break;
+                                        }
+                                    }
+                                    
+                                    // إذا لم تكن القيمة موجودة، أضف خيارًا جديدًا
+                                    if (!optionExists) {
+                                        const newOption = document.createElement('option');
+                                        newOption.value = accountId;
+                                        newOption.text = `${accountCode} - ${accountName}`;
+                                        targetSelect.add(newOption);
+                                        optionIndex = targetSelect.options.length - 1;
+                                    }
+                                    
+                                    // تحديد الخيار في القائمة المنسدلة
+                                    targetSelect.selectedIndex = optionIndex;
+                                    
+                                    // تشغيير لتحديث أي منطق مرتبط
+                                    const event = new Event('change');
+                                    targetSelect.dispatchEvent(event);
+                                    
+                                    // الانتقال إلى حقل المدين في نفس الصف
+                                    const row = targetSelect.closest('tr');
+                                    if (row) {
+                                        const debitInput = row.querySelector('.debit-input');
+                                        if (debitInput) {
+                                            // تأخير قصير للتأكد من أن النافذة المنبثقة قد أغلقت تمامًا
+                                            setTimeout(() => {
+                                                debitInput.focus();
+                                                debitInput.select(); // تحديد النص الحالي لسهولة الكتابة
+                                            }, 100);
+                                        }
+                                    }
+                                }
+                                
+                                // إغلاق النافذة المنبثقة
+                                bootstrap.Modal.getInstance(document.getElementById('accountSearchModal')).hide();
+                            });
+                        });
+                    } else {
+                        resultsContainer.innerHTML = '<tr><td colspan="4" class="text-center">لا توجد نتائج</td></tr>';
+                    }
+                })
+                .catch(error => {
+                    console.error('خطأ في البحث عن الحسابات:', error);
+                    document.getElementById('accountSearchResults').innerHTML = 
+                        '<tr><td colspan="4" class="text-center text-danger">حدث خطأ أثناء البحث</td></tr>';
+                });
+        }
+
+        // ربث حدث النقر على زر إضافة صف
+        if (addRowBtn) {
+            addRowBtn.addEventListener('click', addRow);
+        }
+
+        // إضافة صف أول عند تحميل الصفحة
+        addRow();
+    });
+</script>
+{% endblock %}
+
+// إضافة زر لتحميل الحسابات
+document.addEventListener('DOMContentLoaded', function() {
+    // إضافة زر لتحميل الحسابات
+    const cardHeader = document.querySelector('.card-header');
+    if (cardHeader) {
+        const loadAccountsBtn = document.createElement('button');
+        loadAccountsBtn.type = 'button';
+        loadAccountsBtn.className = 'btn btn-sm btn-outline-primary ms-2';
+        loadAccountsBtn.innerHTML = '<i class="bi bi-arrow-repeat"></i> تحديث الحسابات';
+        loadAccountsBtn.addEventListener('click', loadAccounts);
+        
+        // إضافة الزر قبل زر إضافة بند
+        const addRowBtn = document.getElementById('add-row-btn');
+        if (addRowBtn) {
+            addRowBtn.parentNode.insertBefore(loadAccountsBtn, addRowBtn);
+        }
+    }
+});
+
+<!-- إذا كان هناك حقل لعرض رقم قيد اليومية المرتبط بسند الصرف -->
+<input type="text" class="form-control" id="journal_entry_number" name="journal_entry_number" value="{{ journal_number|int }}" readonly>

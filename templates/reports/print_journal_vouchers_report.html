@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تقرير قيود اليومية</title>
+    <style>
+        @media print {
+            @page {
+                size: landscape;
+                margin: 1cm;
+            }
+        }
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 10px;
+            direction: rtl;
+        }
+        .report-header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .report-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        .report-subtitle {
+            font-size: 14px;
+            margin-bottom: 5px;
+        }
+        .report-date {
+            font-size: 12px;
+            margin-bottom: 20px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 5px;
+            text-align: right;
+        }
+        th {
+            background-color: #f2f2f2;
+            font-weight: bold;
+        }
+        .text-end {
+            text-align: left;
+        }
+        .no-data {
+            text-align: center;
+            padding: 20px;
+        }
+        .page-footer {
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+            text-align: center;
+            font-size: 10px;
+            padding: 5px 0;
+            border-top: 1px solid #ddd;
+        }
+        .page-number:after {
+            content: counter(page);
+        }
+    </style>
+</head>
+<body>
+    <div class="report-header">
+        <div class="report-title">تقرير قيود اليومية</div>
+        <div class="report-subtitle">
+            {% if filters.start_date and filters.end_date %}
+            للفترة من {{ filters.start_date }} إلى {{ filters.end_date }}
+            {% elif filters.start_date %}
+            من تاريخ {{ filters.start_date }}
+            {% elif filters.end_date %}
+            حتى تاريخ {{ filters.end_date }}
+            {% endif %}
+        </div>
+        <div class="report-date">تاريخ الطباعة: {{ print_date }}</div>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>رقم القيد</th>
+                <th>رقم سند الصرف</th>
+                <th>رقم سند القبض</th>
+                <th>التاريخ</th>
+                <th>رقم الحساب</th>
+                <th>اسم الحساب</th>
+                <th>البيان</th>
+                <th>مدين</th>
+                <th>دائن</th>
+                <th>رقم مركز التكلفة</th>
+                <th>اسم مركز التكلفة</th>
+                <th>منشئ القيد</th>
+                <th>نوع السند</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in vouchers_data %}
+            <tr>
+                <td>{{ item.voucher_number }}</td>
+                <td>{{ item.payment_voucher_number or '' }}</td>
+                <td>{{ item.receipt_voucher_number or '' }}</td>
+                <td>{{ item.voucher_date }}</td>
+                <td>{{ item.account_code }}</td>
+                <td>{{ item.account_name }}</td>
+                <td>{{ item.description }}</td>
+                <td class="text-end">{{ "%.2f"|format(item.debit) if item.debit > 0 else '' }}</td>
+                <td class="text-end">{{ "%.2f"|format(item.credit) if item.credit > 0 else '' }}</td>
+                <td>{{ item.cost_center_id or '' }}</td>
+                <td>{{ item.cost_center_name or '' }}</td>
+                <td>{{ item.created_by }}</td>
+                <td>{{ item.voucher_type }}</td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="13" class="no-data">لا توجد بيانات للعرض</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <div class="page-footer">
+        صفحة <span class="page-number"></span>
+    </div>
+
+    <script>
+        window.onload = function() {
+            window.print();
+        }
+    </script>
+</body>
+</html>

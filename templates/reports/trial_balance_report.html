@@ -1,0 +1,121 @@
+{% extends 'base.html' %}
+
+{% block title %}تقرير ميزان المراجعة{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="card">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">تقرير ميزان المراجعة</h5>
+        </div>
+        <div class="card-body">
+            <!-- نموذج التصفية -->
+            <form method="get" class="mb-4">
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label for="start_date">من تاريخ:</label>
+                            <input type="date" class="form-control" id="start_date" name="start_date" value="{{ filters.start_date or default_start_date }}">
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label for="end_date">إلى تاريخ:</label>
+                            <input type="date" class="form-control" id="end_date" name="end_date" value="{{ filters.end_date or default_end_date }}">
+                        </div>
+                    </div>
+                    <div class="col-md-4 d-flex align-items-end">
+                        <button type="submit" class="btn btn-primary me-2">عرض التقرير</button>
+                        <a href="{{ url_for('trial_balance.print_trial_balance_report', start_date=filters.start_date, end_date=filters.end_date) }}" target="_blank" class="btn btn-secondary me-2">
+                            <i class="fas fa-print"></i> طباعة
+                        </a>
+                        <a href="{{ url_for('trial_balance.export_trial_balance_report', start_date=filters.start_date, end_date=filters.end_date) }}" class="btn btn-success">
+                            <i class="fas fa-file-excel"></i> تصدير Excel
+                        </a>
+                    </div>
+                </div>
+            </form>
+
+            <!-- جدول ميزان المراجعة -->
+            <div class="table-responsive">
+                <table class="table table-bordered table-striped table-hover">
+                    <thead class="table-dark">
+                        <tr>
+                            <th rowspan="2" class="text-center align-middle">كود الحساب</th>
+                            <th rowspan="2" class="text-center align-middle">اسم الحساب</th>
+                            <th colspan="2" class="text-center">رصيد أول المدة</th>
+                            <th colspan="2" class="text-center">حركة الفترة</th>
+                            <th colspan="2" class="text-center">مجموع الحركات</th>
+                            <th colspan="2" class="text-center">الرصيد</th>
+                        </tr>
+                        <tr>
+                            <th class="text-center">مدين</th>
+                            <th class="text-center">دائن</th>
+                            <th class="text-center">مدين</th>
+                            <th class="text-center">دائن</th>
+                            <th class="text-center">مدين</th>
+                            <th class="text-center">دائن</th>
+                            <th class="text-center">مدين</th>
+                            <th class="text-center">دائن</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for type_id, type_name in account_types.items() %}
+                            {% set type_accounts = report_data.accounts|selectattr('account_type', 'equalto', type_id)|list %}
+                            {% if type_accounts %}
+                                <!-- عنوان نوع الحساب -->
+                                <tr class="table-primary">
+                                    <td colspan="10" class="fw-bold">{{ type_name }}</td>
+                                </tr>
+                                
+                                <!-- حسابات هذا النوع -->
+                                {% for account in type_accounts %}
+                                    <tr>
+                                        <td>{{ account.code }}</td>
+                                        <td>{{ account.name }}</td>
+                                        <td class="text-start">{{ '{:,.2f}'.format(account.opening_debit) if account.opening_debit > 0 else '' }}</td>
+                                        <td class="text-start">{{ '{:,.2f}'.format(account.opening_credit) if account.opening_credit > 0 else '' }}</td>
+                                        <td class="text-start">{{ '{:,.2f}'.format(account.period_debit) if account.period_debit > 0 else '' }}</td>
+                                        <td class="text-start">{{ '{:,.2f}'.format(account.period_credit) if account.period_credit > 0 else '' }}</td>
+                                        <td class="text-start">{{ '{:,.2f}'.format(account.total_debit) if account.total_debit > 0 else '' }}</td>
+                                        <td class="text-start">{{ '{:,.2f}'.format(account.total_credit) if account.total_credit > 0 else '' }}</td>
+                                        <td class="text-start">{{ '{:,.2f}'.format(account.balance_debit) if account.balance_debit > 0 else '' }}</td>
+                                        <td class="text-start">{{ '{:,.2f}'.format(account.balance_credit) if account.balance_credit > 0 else '' }}</td>
+                                    </tr>
+                                {% endfor %}
+                                
+                                <!-- مجموع هذا النوع -->
+                                {% set type_total = report_data.type_totals[type_id] %}
+                                <tr class="table-secondary fw-bold">
+                                    <td colspan="2">إجمالي {{ type_name }}</td>
+                                    <td class="text-start">{{ '{:,.2f}'.format(type_total.opening_debit) if type_total.opening_debit > 0 else '' }}</td>
+                                    <td class="text-start">{{ '{:,.2f}'.format(type_total.opening_credit) if type_total.opening_credit > 0 else '' }}</td>
+                                    <td class="text-start">{{ '{:,.2f}'.format(type_total.period_debit) if type_total.period_debit > 0 else '' }}</td>
+                                    <td class="text-start">{{ '{:,.2f}'.format(type_total.period_credit) if type_total.period_credit > 0 else '' }}</td>
+                                    <td class="text-start">{{ '{:,.2f}'.format(type_total.total_debit) if type_total.total_debit > 0 else '' }}</td>
+                                    <td class="text-start">{{ '{:,.2f}'.format(type_total.total_credit) if type_total.total_credit > 0 else '' }}</td>
+                                    <td class="text-start">{{ '{:,.2f}'.format(type_total.balance_debit) if type_total.balance_debit > 0 else '' }}</td>
+                                    <td class="text-start">{{ '{:,.2f}'.format(type_total.balance_credit) if type_total.balance_credit > 0 else '' }}</td>
+                                </tr>
+                            {% endif %}
+                        {% endfor %}
+                        
+                        <!-- الإجمالي الكلي -->
+                        <tr class="table-dark fw-bold">
+                            <td colspan="2">الإجمالي الكلي</td>
+                            <td class="text-start">{{ '{:,.2f}'.format(report_data.totals.opening_debit) }}</td>
+                            <td class="text-start">{{ '{:,.2f}'.format(report_data.totals.opening_credit) }}</td>
+                            <td class="text-start">{{ '{:,.2f}'.format(report_data.totals.period_debit) }}</td>
+                            <td class="text-start">{{ '{:,.2f}'.format(report_data.totals.period_credit) }}</td>
+                            <td class="text-start">{{ '{:,.2f}'.format(report_data.totals.total_debit) }}</td>
+                            <td class="text-start">{{ '{:,.2f}'.format(report_data.totals.total_credit) }}</td>
+                            <td class="text-start">{{ '{:,.2f}'.format(report_data.totals.balance_debit) }}</td>
+                            <td class="text-start">{{ '{:,.2f}'.format(report_data.totals.balance_credit) }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

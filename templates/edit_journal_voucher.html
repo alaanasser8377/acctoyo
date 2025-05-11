@@ -1,0 +1,462 @@
+{% extends 'base.html' %}
+
+{% block title %}تعديل قيد يومية{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+        <h1 class="h2 page-title">تعديل قيد يومية رقم: {{ voucher.voucher_number }}</h1>
+        <div>
+             <a href="{{ url_for('list_journal_vouchers') }}" class="btn btn-sm btn-outline-secondary">
+                <i class="bi bi-list-ul me-1"></i> عرض قائمة القيود
+            </a>
+        </div>
+    </div>
+
+    {# رسائل الفلاش يتم عرضها من base.html #}
+
+    {# النموذج الرئيسي #}
+    <form id="voucher-form" action="{{ url_for('edit_journal_voucher', voucher_id=voucher.id) }}" method="POST">
+        {# حقل CSRF إذا كنت تستخدمه #}
+        {# {{ form.csrf_token }} #}
+
+        {# --- قسم رأس القيد --- #}
+        <div class="card mb-4 shadow-sm">
+            <div class="card-header">
+                بيانات القيد الأساسية
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <label for="voucher_number" class="form-label">رقم القيد</label>
+                        {# جعل رقم القيد للقراءة فقط عند التعديل #}
+                        <input type="text" class="form-control form-control-sm" id="voucher_number" name="voucher_number"
+                               value="{{ voucher.voucher_number }}" readonly>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="voucher_date" class="form-label">تاريخ القيد <span class="text-danger">*</span></label>
+                        {# إزالة .strftime() والاعتماد على أن القيمة مناسبة لحقل الإدخال date #}
+                        <input type="date" class="form-control form-control-sm" id="voucher_date" name="voucher_date"
+                               value="{{ voucher.voucher_date if voucher.voucher_date else '' }}" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="financial_year_id" class="form-label">السنة المالية</label>
+                        {# عرض اسم السنة المالية للقراءة فقط #}
+                        <input type="text" class="form-control form-control-sm" id="financial_year_name"
+                               value="{{ voucher.financial_year.year_name if voucher.financial_year else 'غير محددة' }}" readonly disabled>
+                        {# حقل مخفي لإرسال ID السنة المالية - قد لا يكون ضرورياً للتعديل إذا لم نسمح بتغيير السنة #}
+                        <input type="hidden" name="financial_year_id" value="{{ voucher.financial_year_id }}">
+                    </div>
+                    <div class="col-12">
+                        <label for="description" class="form-label">الوصف العام للقيد</label>
+                        <textarea class="form-control form-control-sm" id="description" name="description" rows="2">{{ voucher.description }}</textarea>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {# --- قسم تفاصيل القيد (البنود) --- #}
+        <div class="card mb-4 shadow-sm">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span>بنود القيد</span>
+                <button type="button" id="add-row-btn" class="btn btn-sm btn-outline-success">
+                    <i class="bi bi-plus-lg"></i> إضافة بند
+                </button>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-sm table-bordered table-hover mb-0" id="voucher-details-table">
+                        <thead class="table-light">
+                            <tr>
+                                <th style="width: 25%;">الحساب <span class="text-danger">*</span></th>
+                                <th style="width: 12%;">مدين <span class="text-danger">*</span></th>
+                                <th style="width: 12%;">دائن <span class="text-danger">*</span></th>
+                                <th style="width: 30%;">الوصف</th>
+                                <th style="width: 12%;">مركز التكلفة</th>
+                                <th style="width: 5%;" class="text-center">إجراء</th>
+                            </tr>
+                        </thead>
+                        <tbody id="details-tbody">
+                            {# عرض البنود الحالية للقيد #}
+                            {% for item in voucher.details %}
+                            <tr class="detail-row">
+                                <!-- محتوى الصف الذي يعرض بيانات البند -->
+                                <td>
+                                    <div class="input-group input-group-sm">
+                                        <select name="account_id[]" class="form-select form-select-sm account-select" required>
+                                            <option value="" disabled>-- اختر الحساب --</option>
+                                            {% for acc in posting_accounts %}
+                                            <option value="{{ acc.id }}" {% if acc.id == item.account_id %}selected{% endif %}>{{ acc.code }} - {{ acc.name }}</option>
+                                            {% endfor %}
+                                        </select>
+                                        <button type="button" class="btn btn-outline-secondary search-account-btn" title="بحث عن حساب">
+                                            <i class="bi bi-search"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                                <td><input type="text" name="debit[]" class="form-control form-control-sm debit-input text-end" value="{{ '%.2f'|format(item.debit or 0.00) }}" pattern="^\d*([.,]\d+)?$"></td>
+                                <td><input type="text" name="credit[]" class="form-control form-control-sm credit-input text-end" value="{{ '%.2f'|format(item.credit or 0.00) }}" pattern="^\d*([.,]\d+)?$"></td>
+                                <td><input type="text" name="detail_description[]" class="form-control form-control-sm" value="{{ item.description or '' }}"></td>
+                                <td>
+                                    <select name="cost_center_id[]" class="form-select form-select-sm">
+                                        <option value="None" {% if not item.cost_center_id %}selected{% endif %}>-- لا يوجد --</option>
+                                        {% for cc in cost_centers %}
+                                        <option value="{{ cc.id }}" {% if cc.id == item.cost_center_id %}selected{% endif %}>{{ cc.name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </td>
+                                <td class="text-center">
+                                    <button type="button" class="btn btn-sm btn-outline-danger remove-row-btn" title="حذف البند"><i class="bi bi-trash"></i></button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                            {# قالب الصف الجديد المخفي - نفس القالب المستخدم في نموذج الإضافة #}
+                            <tr class="detail-row" style="display: none;" id="row-template">
+                                <td>
+                                    <div class="input-group input-group-sm">
+                                        <select name="account_id[]" class="form-select form-select-sm account-select" required disabled>
+                                            <option value="" selected disabled>-- اختر الحساب --</option>
+                                            {% for acc in posting_accounts %}
+                                            <option value="{{ acc.id }}">{{ acc.code }} - {{ acc.name }}</option>
+                                            {% endfor %}
+                                        </select>
+                                        <button type="button" class="btn btn-outline-secondary search-account-btn" title="بحث عن حساب" disabled>
+                                            <i class="bi bi-search"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                                <td><input type="text" name="debit[]" class="form-control form-control-sm debit-input text-end" value="0.00" pattern="^\d*([.,]\d+)?$" disabled></td>
+                                <td><input type="text" name="credit[]" class="form-control form-control-sm credit-input text-end" value="0.00" pattern="^\d*([.,]\d+)?$" disabled></td>
+                                <td><input type="text" name="detail_description[]" class="form-control form-control-sm" disabled></td>
+                                <td>
+                                    <select name="cost_center_id[]" class="form-select form-select-sm" disabled>
+                                        <option value="None" selected>-- لا يوجد --</option>
+                                        {% for cc in cost_centers %}
+                                        <option value="{{ cc.id }}">{{ cc.name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </td>
+                                <td class="text-center">
+                                    <button type="button" class="btn btn-sm btn-outline-danger remove-row-btn" title="حذف البند" disabled><i class="bi bi-trash"></i></button>
+                                </td>
+                            </tr>
+                        </tbody>
+                        <tfoot>
+                            <tr class="table-light">
+                                <th class="text-end">الإجمالي:</th>
+                                <td class="text-end"><strong id="total-debit">0.00</strong></td>
+                                <td class="text-end"><strong id="total-credit">0.00</strong></td>
+                                <td colspan="3" id="balance-status" class="text-center"></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        {# --- أزرار الحفظ والإلغاء --- #}
+        <div class="mt-4 d-flex justify-content-end">
+            <a href="{{ url_for('list_journal_vouchers') }}" class="btn btn-secondary me-2">
+                <i class="bi bi-x-lg me-1"></i> إلغاء
+            </a>
+            <button type="submit" class="btn btn-primary" id="save-voucher-btn">
+                <i class="bi bi-save me-1"></i> حفظ التعديلات
+            </button>
+        </div>
+
+    </form> {# نهاية النموذج الرئيسي #}
+
+</div> {# نهاية container-fluid #}
+{% endblock %}
+
+{% block scripts %}
+{# نفس السكربت المستخدم في journal_voucher_form.html مع التأكد من حساب الإجماليات عند التحميل #}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const addRowBtn = document.getElementById('add-row-btn');
+    const detailsTbody = document.getElementById('details-tbody');
+    const rowTemplate = document.getElementById('row-template');
+    const totalDebitEl = document.getElementById('total-debit');
+    const totalCreditEl = document.getElementById('total-credit');
+    const balanceStatusEl = document.getElementById('balance-status');
+    const saveBtn = document.getElementById('save-voucher-btn');
+    const voucherForm = document.getElementById('voucher-form');
+
+    // --- دالة لإضافة صف جديد ---
+    function addRow() {
+        const newRow = rowTemplate.cloneNode(true); // استنساخ القالب
+        newRow.style.display = ''; // إظهار الصف الجديد
+        newRow.removeAttribute('id'); // إزالة ID القالب
+
+        // تفعيل الحقول في الصف الجديد
+        newRow.querySelectorAll('input, select, button').forEach(el => el.disabled = false);
+
+        // نسخ الوصف من السطر السابق إذا كان موجودًا
+        const existingRows = detailsTbody.querySelectorAll('tr.detail-row:not([id="row-template"])');
+        if (existingRows.length > 0) {
+            const lastRow = existingRows[existingRows.length - 1];
+            const lastDescription = lastRow.querySelector('input[name="detail_description[]"]').value;
+            newRow.querySelector('input[name="detail_description[]"]').value = lastDescription;
+        }
+
+        detailsTbody.appendChild(newRow);
+        attachRowEventListeners(newRow); // ربط الأحداث بالصف الجديد
+        updateTotals(); // تحديث الإجماليات
+    }
+
+    // --- دالة لحذف صف ---
+    function removeRow(button) {
+        const rowToRemove = button.closest('tr');
+        if (rowToRemove) {
+            rowToRemove.remove();
+            updateTotals(); // تحديث الإجماليات بعد الحذف
+        }
+    }
+
+    // --- دالة لتحديث الإجماليات والتحقق من التوازن ---
+    function updateTotals() {
+        let totalDebit = 0;
+        let totalCredit = 0;
+        const rows = detailsTbody.querySelectorAll('tr.detail-row:not([id="row-template"])'); // الحصول على كل الصفوف الفعلية (باستثناء القالب)
+
+        rows.forEach(row => {
+            const debitInput = row.querySelector('.debit-input');
+            const creditInput = row.querySelector('.credit-input');
+            const debitValue = parseFloat(debitInput.value.replace(',', '.')) || 0;
+            const creditValue = parseFloat(creditInput.value.replace(',', '.')) || 0;
+            totalDebit += debitValue;
+            totalCredit += creditValue;
+        });
+
+        totalDebitEl.textContent = totalDebit.toFixed(2);
+        totalCreditEl.textContent = totalCredit.toFixed(2);
+
+        // التحقق من التوازن
+        if (rows.length === 0) {
+             balanceStatusEl.textContent = 'يجب إضافة بنود للقيد';
+             balanceStatusEl.className = 'text-center text-warning fw-bold';
+             saveBtn.disabled = true; // لا يمكن الحفظ بدون بنود
+        } else if (Math.abs(totalDebit - totalCredit) < 0.01) { // استخدام هامش صغير للمقارنة
+            balanceStatusEl.textContent = 'القيد متوازن';
+            balanceStatusEl.className = 'text-center text-success fw-bold';
+            saveBtn.disabled = false; // تفعيل زر الحفظ
+        } else {
+            balanceStatusEl.textContent = 'القيد غير متوازن';
+            balanceStatusEl.className = 'text-center text-danger fw-bold';
+            saveBtn.disabled = true; // تعطيل زر الحفظ
+        }
+    }
+
+    // --- دالة لربط مستمعي الأحداث بصف معين ---
+    function attachRowEventListeners(row) {
+        const removeBtn = row.querySelector('.remove-row-btn');
+        if (removeBtn) {
+            removeBtn.addEventListener('click', function() {
+                removeRow(this);
+            });
+        }
+
+        const searchAccountBtn = row.querySelector('.search-account-btn');
+        if (searchAccountBtn) {
+            searchAccountBtn.addEventListener('click', function() {
+                openAccountSearchModal(this);
+            });
+        }
+
+        const debitInput = row.querySelector('.debit-input');
+        const creditInput = row.querySelector('.credit-input');
+        const descriptionInput = row.querySelector('input[name="detail_description[]"]');
+
+        if (descriptionInput) {
+            descriptionInput.addEventListener('blur', function() {
+                const currentRow = this.closest('tr');
+                const nextRow = currentRow.nextElementSibling;
+                if (nextRow && nextRow.classList.contains('detail-row')) {
+                    const nextDescriptionInput = nextRow.querySelector('input[name="detail_description[]"]');
+                    if (nextDescriptionInput && !nextDescriptionInput.value.trim()) {
+                        nextDescriptionInput.value = this.value;
+                    }
+                }
+            });
+        }
+
+        if (debitInput) {
+            debitInput.addEventListener('input', function() {
+                if (parseFloat(this.value.replace(',', '.')) > 0) {
+                    creditInput.value = '0.00';
+                }
+                updateTotals();
+            });
+             debitInput.addEventListener('blur', function() {
+                let value = parseFloat(this.value.replace(',', '.')) || 0;
+                this.value = value.toFixed(2);
+                updateTotals();
+            });
+        }
+
+        if (creditInput) {
+            creditInput.addEventListener('input', function() {
+                if (parseFloat(this.value.replace(',', '.')) > 0) {
+                    debitInput.value = '0.00';
+                }
+                updateTotals();
+            });
+             creditInput.addEventListener('blur', function() {
+                let value = parseFloat(this.value.replace(',', '.')) || 0;
+                this.value = value.toFixed(2);
+                updateTotals();
+            });
+        }
+    }
+
+    // --- دالة لفتح نافذة البحث عن حساب (نفس الدالة من نموذج الإضافة) ---
+    function openAccountSearchModal(button) {
+        const row = button.closest('tr');
+        const accountSelect = row.querySelector('.account-select');
+        const debitInput = row.querySelector('.debit-input');
+
+        const searchModal = document.createElement('div');
+        searchModal.className = 'modal fade';
+        searchModal.id = 'accountSearchModal';
+        searchModal.setAttribute('tabindex', '-1');
+        searchModal.setAttribute('aria-labelledby', 'accountSearchModalLabel');
+        searchModal.setAttribute('aria-hidden', 'true');
+
+        searchModal.innerHTML = `
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="accountSearchModalLabel">بحث عن حساب</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="إغلاق"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label for="account-search-input" class="form-label">ابحث بالاسم أو الرمز</label>
+                            <input type="text" class="form-control" id="account-search-input" placeholder="اكتب للبحث...">
+                        </div>
+                        <div class="search-results" style="max-height: 300px; overflow-y: auto;">
+                            <table class="table table-sm table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>الرمز</th>
+                                        <th>الاسم</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="account-search-results">
+                                    {% for acc in posting_accounts %}
+                                    <tr data-account-id="{{ acc.id }}" data-account-code="{{ acc.code }}" data-account-name="{{ acc.name }}" style="cursor: pointer;">
+                                        <td>{{ acc.code }}</td>
+                                        <td>{{ acc.name }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إغلاق</button>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(searchModal);
+        const modalInstance = new bootstrap.Modal(searchModal);
+
+        const searchInput = searchModal.querySelector('#account-search-input');
+        const resultsBody = searchModal.querySelector('#account-search-results');
+        const allRows = resultsBody.querySelectorAll('tr');
+
+        searchInput.addEventListener('input', function() {
+            const searchTerm = this.value.toLowerCase().trim();
+            allRows.forEach(tr => {
+                const code = tr.dataset.accountCode.toLowerCase();
+                const name = tr.dataset.accountName.toLowerCase();
+                if (code.includes(searchTerm) || name.includes(searchTerm)) {
+                    tr.style.display = '';
+                } else {
+                    tr.style.display = 'none';
+                }
+            });
+        });
+
+        resultsBody.addEventListener('click', function(e) {
+            const selectedRow = e.target.closest('tr');
+            if (selectedRow) {
+                const accountId = selectedRow.dataset.accountId;
+                accountSelect.value = accountId;
+                modalInstance.hide();
+                // التركيز على حقل المدين بعد اختيار الحساب
+                if (debitInput) {
+                    debitInput.focus();
+                    debitInput.select(); // تحديد النص الموجود لتسهيل الإدخال
+                }
+            }
+        });
+
+        searchModal.addEventListener('hidden.bs.modal', function () {
+            searchModal.remove(); // إزالة عنصر المودال من DOM بعد إغلاقه
+        });
+
+        modalInstance.show();
+        searchInput.focus(); // التركيز على حقل البحث عند فتح المودال
+    }
+
+    // --- ربط الأحداث بالأزرار والصفوف الموجودة عند تحميل الصفحة ---
+    if (addRowBtn) {
+        addRowBtn.addEventListener('click', addRow);
+    }
+
+    // ربط الأحداث بالصفوف الموجودة مسبقاً (التي تم تحميلها مع القيد)
+    detailsTbody.querySelectorAll('tr.detail-row').forEach(row => {
+        attachRowEventListeners(row);
+    });
+
+    // --- التحقق من النموذج قبل الإرسال ---
+    voucherForm.addEventListener('submit', function(event) {
+        // 1. التحقق من وجود بنود
+        const rows = detailsTbody.querySelectorAll('tr.detail-row:not([id="row-template"])');
+        if (rows.length === 0) {
+            alert('يجب إضافة بند واحد على الأقل للقيد.');
+            event.preventDefault(); // منع الإرسال
+            return;
+        }
+
+        // 2. التحقق من التوازن (تم بالفعل بواسطة updateTotals وتعطيل زر الحفظ)
+        if (saveBtn.disabled) {
+             alert('لا يمكن حفظ القيد لأنه غير متوازن أو لا يحتوي على بنود.');
+             event.preventDefault(); // منع الإرسال
+             return;
+        }
+
+        // 3. التحقق من أن حقول المدين/الدائن ليست فارغة أو صفر معاً في أي صف
+        let invalidRowFound = false;
+        rows.forEach(row => {
+            const debitValue = parseFloat(row.querySelector('.debit-input').value.replace(',', '.')) || 0;
+            const creditValue = parseFloat(row.querySelector('.credit-input').value.replace(',', '.')) || 0;
+            if (debitValue === 0 && creditValue === 0) {
+                invalidRowFound = true;
+                // يمكنك إضافة تمييز للصف الذي به خطأ هنا
+                row.querySelector('.debit-input').classList.add('is-invalid');
+                row.querySelector('.credit-input').classList.add('is-invalid');
+            } else {
+                 row.querySelector('.debit-input').classList.remove('is-invalid');
+                 row.querySelector('.credit-input').classList.remove('is-invalid');
+            }
+        });
+
+        if (invalidRowFound) {
+            alert('يجب إدخال قيمة في حقل المدين أو الدائن لكل بند (لا يمكن أن يكون كلاهما صفراً).');
+            event.preventDefault(); // منع الإرسال
+            return;
+        }
+
+        // إذا وصل الكود إلى هنا، فالنموذج صالح للإرسال
+    });
+
+    // --- حساب الإجماليات عند تحميل الصفحة لأول مرة ---
+    updateTotals();
+
+});
+</script>
+{% endblock %}

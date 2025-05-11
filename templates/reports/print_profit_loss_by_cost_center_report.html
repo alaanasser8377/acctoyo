@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تقرير الأرباح والخسائر حسب مراكز التكلفة</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/fontawesome.min.css') }}">
+    <style>
+        @media print {
+            @page {
+                size: A4;
+                margin: 1cm;
+            }
+            body {
+                font-size: 12pt;
+            }
+            .no-print {
+                display: none !important;
+            }
+            .page-break {
+                page-break-after: always;
+            }
+            .table {
+                width: 100%;
+                border-collapse: collapse;
+            }
+            .table th, .table td {
+                border: 1px solid #000;
+                padding: 5px;
+            }
+            .table-success {
+                background-color: #d4edda !important;
+                -webkit-print-color-adjust: exact;
+            }
+            .table-danger {
+                background-color: #f8d7da !important;
+                -webkit-print-color-adjust: exact;
+            }
+        }
+        .rtl {
+            direction: rtl;
+            text-align: right;
+        }
+        .report-header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .report-title {
+            font-size: 20pt;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        .report-date {
+            font-size: 12pt;
+            margin-bottom: 5px;
+        }
+        .print-date {
+            font-size: 10pt;
+            color: #666;
+            margin-bottom: 20px;
+        }
+        .cost-center-title {
+            font-size: 16pt;
+            font-weight: bold;
+            margin: 15px 0;
+            padding: 5px;
+            background-color: #f0f0f0;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body class="rtl">
+    <div class="container-fluid">
+        <!-- زر الطباعة -->
+        <div class="row no-print mb-3">
+            <div class="col-12 text-center">
+                <button onclick="window.print()" class="btn btn-primary">
+                    <i class="fas fa-print"></i> طباعة التقرير
+                </button>
+                <button onclick="window.close()" class="btn btn-secondary mr-2">
+                    <i class="fas fa-times"></i> إغلاق
+                </button>
+            </div>
+        </div>
+
+        <!-- رأس التقرير -->
+        <div class="report-header">
+            <div class="report-title">تقرير الأرباح والخسائر حسب مراكز التكلفة</div>
+            <div class="report-date">الفترة من {{ filters.start_date }} إلى {{ filters.end_date }}</div>
+            <div class="print-date">تاريخ الطباعة: {{ print_date }}</div>
+        </div>
+
+        <!-- عرض التقارير لكل مركز تكلفة -->
+        {% for report_item in reports_by_cost_center %}
+        <div class="{% if not loop.first %}page-break{% endif %}">
+            <div class="cost-center-title">{{ report_item.cost_center.name }} {% if report_item.cost_center.code %}({{ report_item.cost_center.code }}){% endif %}</div>
+            
+            <table class="table table-bordered">
+                <thead>
+                    <tr>
+                        <th class="text-right" style="width: 70%;">البند</th>
+                        <th class="text-left" style="width: 30%;">المبلغ</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- قسم الإيرادات -->
+                    <tr class="table-success">
+                        <td class="text-right font-weight-bold">الإيرادات</td>
+                        <td class="text-left font-weight-bold">{{ "{:,.2f}".format(report_item.report_data.total_revenue) }}</td>
+                    </tr>
+                    {% for revenue in report_item.report_data.revenues %}
+                    <tr>
+                        <td class="text-right pr-4">{{ revenue.name }}</td>
+                        <td class="text-left">{{ "{:,.2f}".format(revenue.amount) }}</td>
+                    </tr>
+                    {% endfor %}
+                    
+                    <!-- قسم المصروفات -->
+                    <tr class="table-danger">
+                        <td class="text-right font-weight-bold">المصروفات</td>
+                        <td class="text-left font-weight-bold">{{ "{:,.2f}".format(report_item.report_data.total_expense) }}</td>
+                    </tr>
+                    {% for expense in report_item.report_data.expenses %}
+                    <tr>
+                        <td class="text-right pr-4">{{ expense.name }}</td>
+                        <td class="text-left">{{ "{:,.2f}".format(expense.amount) }}</td>
+                    </tr>
+                    {% endfor %}
+                    
+                    <!-- صافي الربح أو الخسارة -->
+                    <tr class="{% if report_item.report_data.is_profit %}table-success{% else %}table-danger{% endif %}">
+                        <td class="text-right font-weight-bold">
+                            {% if report_item.report_data.is_profit %}
+                            صافي الربح
+                            {% else %}
+                            صافي الخسارة
+                            {% endif %}
+                        </td>
+                        <td class="text-left font-weight-bold">{{ "{:,.2f}".format(report_item.report_data.net_profit|abs) }}</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        {% endfor %}
+    </div>
+
+    <script src="{{ url_for('static', filename='js/jquery.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}"></script>
+</body>
+</html>

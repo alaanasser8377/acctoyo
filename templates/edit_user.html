@@ -1,0 +1,66 @@
+{% extends 'base.html' %}
+
+{% block title %}تعديل المستخدم: {{ user.username }}{% endblock %}
+
+{% block content %}
+<h1 class="h3 mb-3">تعديل المستخدم: <span class="text-primary">{{ user.username }}</span></h1>
+
+<div class="row">
+    <div class="col-md-8 col-lg-6">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                {# لاحظ أن action يشير لنفس المسار ولكن مع user_id #}
+                <form method="POST" action="{{ url_for('edit_user', user_id=user.id) }}">
+
+                    <div class="mb-3">
+                        <label for="username" class="form-label">اسم المستخدم <span class="text-danger">*</span></label>
+                        {# نعرض اسم المستخدم الحالي، وعادةً لا نسمح بتغييره بسهولة أو نجعله للقراءة فقط #}
+                        <input type="text" class="form-control" id="username" name="username" value="{{ form_data.username if form_data else user.username }}" readonly disabled>
+                        <small class="form-text text-muted">لا يمكن تغيير اسم المستخدم.</small>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="full_name" class="form-label">الاسم الكامل</label>
+                        <input type="text" class="form-control" id="full_name" name="full_name" value="{{ form_data.full_name if form_data else user.full_name }}">
+                    </div>
+
+                    <hr>
+                    <p class="text-muted">اترك حقول كلمة المرور فارغة إذا كنت لا ترغب في تغييرها.</p>
+
+                    <div class="mb-3">
+                        <label for="password" class="form-label">كلمة المرور الجديدة</label>
+                        <input type="password" class="form-control {% if form_data and not password_valid %}is-invalid{% endif %}" id="password" name="password">
+                         {# يمكنك إضافة منطق عرض الأخطاء هنا #}
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="confirm_password" class="form-label">تأكيد كلمة المرور الجديدة</label>
+                        <input type="password" class="form-control {% if form_data and not password_match %}is-invalid{% endif %}" id="confirm_password" name="confirm_password">
+                         {# يمكنك إضافة منطق عرض الأخطاء هنا #}
+                         {% if form_data and not password_match %}
+                            <div class="invalid-feedback">
+                                كلمتا المرور غير متطابقتين.
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <hr>
+
+                    <div class="form-check mb-3">
+                        {# نستخدم is_active من بيانات المستخدم الحالية أو من form_data إذا كان هناك خطأ #}
+                        <input class="form-check-input" type="checkbox" id="is_active" name="is_active" value="1" {% if (form_data and form_data.get('is_active')) or (form_data is none and user.is_active) %}checked{% endif %}>
+                        <label class="form-check-label" for="is_active">
+                            الحساب نشط
+                        </label>
+                    </div>
+
+                    <div class="d-flex justify-content-end">
+                         <a href="{{ url_for('manage_users') }}" class="btn btn-secondary me-2">إلغاء</a>
+                        <button type="submit" class="btn btn-primary">حفظ التغييرات</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

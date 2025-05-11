@@ -1,0 +1,102 @@
+<!-- templates/cost_center_form.html -->
+{% extends 'base.html' %}
+
+{% block title %}{{ form_title }}{% endblock %}
+
+{% block content %}
+<div class="row">
+    {# الشريط الجانبي لعرض المراكز الحالية (اختياري) #}
+    <div class="col-md-4 order-md-2 mb-4">
+        <h4 class="d-flex justify-content-between align-items-center mb-3">
+            <span class="text-muted">المراكز الحالية</span>
+        </h4>
+        {% if existing_centers %}
+        <ul class="list-group mb-3" style="max-height: 400px; overflow-y: auto;">
+            {% for c in existing_centers %}
+            <li class="list-group-item d-flex justify-content-between lh-sm">
+                <div>
+                    <small class="text-muted">{{ c.code or '-' }}</small>
+                    <h6 class="my-0">{{ c.name }}</h6>
+                </div>
+            </li>
+            {% endfor %}
+        </ul>
+        {% else %}
+        <p class="text-muted">لا توجد مراكز تكلفة لعرضها.</p>
+        {% endif %}
+    </div>
+
+    {# نموذج الإضافة/التعديل #}
+    <div class="col-md-8 order-md-1">
+        <h2 class="mb-3 page-title">{{ form_title }}</h2> {# <--- إضافة فئة page-title هنا #}
+
+        <form action="{{ form_action }}" method="POST" novalidate id="costCenterForm" onsubmit="return validateForm()">
+            {% set current_data = form_data or center %}
+
+            <div class="row g-3">
+                <div class="col-sm-6">
+                    <label for="code" class="form-label">كود مركز التكلفة <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="code" name="code" value="{{ current_data.code if current_data else '' }}" required>
+                </div>
+
+                <div class="col-sm-6">
+                    <label for="name" class="form-label">اسم مركز التكلفة <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="name" name="name" value="{{ current_data.name if current_data else '' }}" required>
+                </div>
+
+                {# يمكنك إضافة حقل الوصف إذا أردت استخدامه #}
+                {#
+                <div class="col-12">
+                    <label for="description" class="form-label">الوصف (اختياري)</label>
+                    <textarea class="form-control" id="description" name="description" rows="3">{{ current_data.description if current_data else '' }}</textarea>
+                </div>
+                #}
+
+            </div> {# نهاية .row.g-3 #}
+
+            <hr class="my-4">
+
+            <button class="btn btn-primary btn-lg" type="submit">
+                {% if center %}حفظ التعديلات{% else %}إضافة المركز{% endif %}
+            </button>
+            <a href="{{ url_for('list_cost_centers') }}" class="btn btn-secondary btn-lg">إلغاء</a>
+        </form>
+    </div> {# نهاية .col-md-8 #}
+</div> {# نهاية .row #}
+{% endblock %}
+
+{% block scripts %}
+<script>
+function validateForm() {
+    const codeField = document.getElementById('code');
+    if (!codeField.value.trim()) {
+        alert('يجب إدخال كود مركز التكلفة');
+        codeField.focus();
+        return false;
+    }
+    return true;
+}
+
+// تفعيل التحقق من الحقول المطلوبة في النموذج
+(function() {
+    'use strict';
+    window.addEventListener('load', function() {
+        var forms = document.getElementsByClassName('needs-validation');
+        Array.prototype.filter.call(forms, function(form) {
+            form.addEventListener('submit', function(event) {
+                if (form.checkValidity() === false) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                }
+                form.classList.add('was-validated');
+            }, false);
+        });
+    }, false);
+})();
+</script>
+{% endblock %}
+
+{% block head_extra %}
+{# إضافة FontAwesome إذا كنت تستخدم أيقوناته (اختياري) #}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" integrity="sha512-9usAa10IRO0HhonpyAIVpjrylPvoDwiPUiKdWk5t3PyolY1cOd4DSE0Ga+ri4AuTroPR5aQvXU9xC6qOPnzFeg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+{% endblock %}

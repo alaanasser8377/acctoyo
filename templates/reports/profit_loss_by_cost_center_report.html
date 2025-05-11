@@ -1,0 +1,118 @@
+{% extends 'base.html' %}
+
+{% block title %}تقرير الأرباح والخسائر حسب مراكز التكلفة{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4 rtl">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">تقرير الأرباح والخسائر حسب مراكز التكلفة</h5>
+                </div>
+                <div class="card-body">
+                    <!-- نموذج التصفية -->
+                    <form method="get" class="mb-4">
+                        <div class="row">
+                            <div class="col-md-3">
+                                <div class="form-group">
+                                    <label for="start_date">من تاريخ:</label>
+                                    <input type="date" class="form-control" id="start_date" name="start_date" value="{{ filters.start_date or default_start_date }}">
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="form-group">
+                                    <label for="end_date">إلى تاريخ:</label>
+                                    <input type="date" class="form-control" id="end_date" name="end_date" value="{{ filters.end_date or default_end_date }}">
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="form-group">
+                                    <label for="cost_center_id">مركز التكلفة:</label>
+                                    <select class="form-control" id="cost_center_id" name="cost_center_id">
+                                        <option value="">-- جميع مراكز التكلفة --</option>
+                                        {% for cost_center in all_cost_centers %}
+                                        <option value="{{ cost_center.id }}" {% if filters.cost_center_id|string == cost_center.id|string %}selected{% endif %}>
+                                            {{ cost_center.name }} {% if cost_center.code %}({{ cost_center.code }}){% endif %}
+                                        </option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-3 d-flex align-items-end">
+                                <button type="submit" class="btn btn-primary ml-2">
+                                    <i class="fas fa-search"></i> بحث
+                                </button>
+                                <a href="{{ url_for('profit_loss_by_cc.print_profit_loss_by_cost_center_report', start_date=filters.start_date, end_date=filters.end_date, cost_center_id=filters.cost_center_id) }}" class="btn btn-secondary ml-2" target="_blank">
+                                    <i class="fas fa-print"></i> طباعة
+                                </a>
+                                <a href="{{ url_for('profit_loss_by_cc.export_profit_loss_by_cost_center_report', start_date=filters.start_date, end_date=filters.end_date, cost_center_id=filters.cost_center_id) }}" class="btn btn-success">
+                                    <i class="fas fa-file-excel"></i> تصدير Excel
+                                </a>
+                            </div>
+                        </div>
+                    </form>
+
+                    <!-- عرض التقارير لكل مركز تكلفة -->
+                    {% for report_item in reports_by_cost_center %}
+                    <div class="card mb-4">
+                        <div class="card-header bg-light">
+                            <h5 class="mb-0">{{ report_item.cost_center.name }} {% if report_item.cost_center.code %}({{ report_item.cost_center.code }}){% endif %}</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-bordered table-hover">
+                                    <thead class="thead-light">
+                                        <tr>
+                                            <th class="text-right">البند</th>
+                                            <th class="text-left">المبلغ</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <!-- قسم الإيرادات -->
+                                        <tr class="table-success">
+                                            <td class="text-right font-weight-bold">الإيرادات</td>
+                                            <td class="text-left font-weight-bold">{{ "{:,.2f}".format(report_item.report_data.total_revenue) }}</td>
+                                        </tr>
+                                        {% for revenue in report_item.report_data.revenues %}
+                                        <tr>
+                                            <td class="text-right pr-4">{{ revenue.name }}</td>
+                                            <td class="text-left">{{ "{:,.2f}".format(revenue.amount) }}</td>
+                                        </tr>
+                                        {% endfor %}
+                                        
+                                        <!-- قسم المصروفات -->
+                                        <tr class="table-danger">
+                                            <td class="text-right font-weight-bold">المصروفات</td>
+                                            <td class="text-left font-weight-bold">{{ "{:,.2f}".format(report_item.report_data.total_expense) }}</td>
+                                        </tr>
+                                        {% for expense in report_item.report_data.expenses %}
+                                        <tr>
+                                            <td class="text-right pr-4">{{ expense.name }}</td>
+                                            <td class="text-left">{{ "{:,.2f}".format(expense.amount) }}</td>
+                                        </tr>
+                                        {% endfor %}
+                                        
+                                        <!-- صافي الربح أو الخسارة -->
+                                        <tr class="{% if report_item.report_data.is_profit %}table-success{% else %}table-danger{% endif %}">
+                                            <td class="text-right font-weight-bold">
+                                                {% if report_item.report_data.is_profit %}
+                                                صافي الربح
+                                                {% else %}
+                                                صافي الخسارة
+                                                {% endif %}
+                                            </td>
+                                            <td class="text-left font-weight-bold">{{ "{:,.2f}".format(report_item.report_data.net_profit|abs) }}</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,182 @@
+{% extends 'base.html' %}
+
+{% block title %}تقرير الميزانية العمومية{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-3">
+    <div class="card shadow">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">تقرير الميزانية العمومية</h5>
+        </div>
+        <div class="card-body">
+            <!-- نموذج التصفية -->
+            <form method="get" class="mb-4">
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label for="start_date">من تاريخ:</label>
+                            <input type="date" id="start_date" name="start_date" class="form-control" value="{{ filters.start_date or default_start_date }}">
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label for="end_date">إلى تاريخ:</label>
+                            <input type="date" id="end_date" name="end_date" class="form-control" value="{{ filters.end_date or default_end_date }}">
+                        </div>
+                    </div>
+                    <div class="col-md-4 d-flex align-items-end">
+                        <button type="submit" class="btn btn-primary ml-2">عرض التقرير</button>
+                        <a href="{{ url_for('balance_sheet.print_balance_sheet_report', start_date=filters.start_date, end_date=filters.end_date) }}" target="_blank" class="btn btn-secondary ml-2">
+                            <i class="fas fa-print"></i> طباعة
+                        </a>
+                        <a href="{{ url_for('balance_sheet.export_balance_sheet_report', start_date=filters.start_date, end_date=filters.end_date) }}" class="btn btn-success">
+                            <i class="fas fa-file-excel"></i> تصدير Excel
+                        </a>
+                    </div>
+                </div>
+            </form>
+
+            <!-- عرض حالة توازن الميزانية -->
+            {% if report_data.is_balanced %}
+                <div class="alert alert-success">
+                    <i class="fas fa-check-circle"></i> الميزانية متوازنة
+                </div>
+            {% else %}
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-triangle"></i> الميزانية غير متوازنة! الفرق: {{ (report_data.total_assets - report_data.total_liabilities_equity) | abs | round(2) }}
+                </div>
+            {% endif %}
+
+            <!-- قسم الأصول -->
+            <div class="section mb-4">
+                <h4 class="section-title bg-light p-2 border">الأصول</h4>
+                <div class="table-responsive">
+                    <table class="table table-bordered table-hover">
+                        <thead class="thead-light">
+                            <tr>
+                                <th width="10%">كود الحساب</th>
+                                <th width="50%">اسم الحساب</th>
+                                <th width="20%">مدين</th>
+                                <th width="20%">دائن</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for asset in report_data.assets %}
+                            <tr>
+                                <td>{{ asset.code }}</td>
+                                <td>{{ asset.name }}</td>
+                                <td class="text-left">{{ asset.debit|float|round(2) }}</td>
+                                <td class="text-left">{{ asset.credit|float|round(2) }}</td>
+                            </tr>
+                            {% endfor %}
+                            <tr class="table-secondary font-weight-bold">
+                                <td colspan="2">إجمالي الأصول</td>
+                                <td class="text-left">{{ report_data.total_assets_debit|float|round(2) }}</td>
+                                <td class="text-left">{{ report_data.total_assets_credit|float|round(2) }}</td>
+                            </tr>
+                            <tr class="table-primary font-weight-bold">
+                                <td colspan="2">صافي الأصول</td>
+                                <td colspan="2" class="text-center">{{ report_data.total_assets|float|round(2) }}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- قسم الخصوم -->
+            <div class="section mb-4">
+                <h4 class="section-title bg-light p-2 border">الخصوم</h4>
+                <div class="table-responsive">
+                    <table class="table table-bordered table-hover">
+                        <thead class="thead-light">
+                            <tr>
+                                <th width="10%">كود الحساب</th>
+                                <th width="50%">اسم الحساب</th>
+                                <th width="20%">مدين</th>
+                                <th width="20%">دائن</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for liability in report_data.liabilities %}
+                            <tr>
+                                <td>{{ liability.code }}</td>
+                                <td>{{ liability.name }}</td>
+                                <td class="text-left">{{ liability.debit|float|round(2) }}</td>
+                                <td class="text-left">{{ liability.credit|float|round(2) }}</td>
+                            </tr>
+                            {% endfor %}
+                            <tr class="table-secondary font-weight-bold">
+                                <td colspan="2">إجمالي الخصوم</td>
+                                <td class="text-left">{{ report_data.total_liabilities_debit|float|round(2) }}</td>
+                                <td class="text-left">{{ report_data.total_liabilities_credit|float|round(2) }}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- قسم حقوق الملكية -->
+            <div class="section mb-4">
+                <h4 class="section-title bg-light p-2 border">حقوق الملكية</h4>
+                <div class="table-responsive">
+                    <table class="table table-bordered table-hover">
+                        <thead class="thead-light">
+                            <tr>
+                                <th width="10%">كود الحساب</th>
+                                <th width="50%">اسم الحساب</th>
+                                <th width="20%">مدين</th>
+                                <th width="20%">دائن</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for equity_item in report_data.equity %}
+                            <tr {% if equity_item.id is none %}class="table-info"{% endif %}>
+                                <td>{{ equity_item.code }}</td>
+                                <td>{{ equity_item.name }}</td>
+                                <td class="text-left">{{ equity_item.debit|float|round(2) }}</td>
+                                <td class="text-left">{{ equity_item.credit|float|round(2) }}</td>
+                            </tr>
+                            {% endfor %}
+                            <tr class="table-secondary font-weight-bold">
+                                <td colspan="2">إجمالي حقوق الملكية</td>
+                                <td class="text-left">{{ report_data.total_equity_debit|float|round(2) }}</td>
+                                <td class="text-left">{{ report_data.total_equity_credit|float|round(2) }}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- إجمالي الخصوم وحقوق الملكية -->
+            <div class="section mb-4">
+                <div class="table-responsive">
+                    <table class="table table-bordered table-hover">
+                        <tbody>
+                            <tr class="table-secondary font-weight-bold">
+                                <td width="60%">إجمالي الخصوم وحقوق الملكية</td>
+                                <td width="20%" class="text-left">{{ (report_data.total_liabilities_debit + report_data.total_equity_debit)|float|round(2) }}</td>
+                                <td width="20%" class="text-left">{{ (report_data.total_liabilities_credit + report_data.total_equity_credit)|float|round(2) }}</td>
+                            </tr>
+                            <tr class="table-primary font-weight-bold">
+                                <td>صافي الخصوم وحقوق الملكية</td>
+                                <td colspan="2" class="text-center">{{ report_data.total_liabilities_equity|float|round(2) }}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    $(document).ready(function() {
+        // تنسيق التاريخ عند تغيير الفلاتر
+        $('#start_date, #end_date').change(function() {
+            // يمكن إضافة تحقق من صحة التواريخ هنا إذا لزم الأمر
+        });
+    });
+</script>
+{% endblock %}

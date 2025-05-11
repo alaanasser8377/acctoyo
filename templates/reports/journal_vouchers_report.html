@@ -1,0 +1,337 @@
+{% extends 'base.html' %}
+
+{% block title %}تقرير قيود اليومية{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+        <h1 class="h2 page-title">تقرير قيود اليومية</h1>
+        <div class="btn-toolbar mb-2 mb-md-0">
+            <div class="btn-group me-2">
+                <a href="{{ url_for('print_journal_vouchers_report', **request.args) }}" class="btn btn-sm btn-outline-secondary" target="_blank">
+                    <i class="bi bi-printer"></i> طباعة
+                </a>
+                <a href="{{ url_for('export_journal_vouchers_report', **request.args) }}" class="btn btn-sm btn-outline-success">
+                    <i class="bi bi-file-earmark-excel"></i> تصدير Excel
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- قسم الفلترة -->
+    <div class="card shadow mb-4">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">معايير البحث</h5>
+        </div>
+        <div class="card-body">
+            <form method="get" action="{{ url_for('journal_vouchers_report_view') }}" id="filter-form">
+                <div class="row g-3">
+                    <div class="col-md-2">
+                        <label for="start_date" class="form-label">من تاريخ</label>
+                        <input type="date" class="form-control form-control-sm" id="start_date" name="start_date" value="{{ filters.start_date if filters.start_date else default_start_date }}">
+                    </div>
+                    <div class="col-md-2">
+                        <label for="end_date" class="form-label">إلى تاريخ</label>
+                        <input type="date" class="form-control form-control-sm" id="end_date" name="end_date" value="{{ filters.end_date if filters.end_date else default_end_date }}">
+                    </div>
+                    <div class="col-md-2">
+                        <label for="voucher_number" class="form-label">رقم القيد</label>
+                        <input type="text" class="form-control form-control-sm" id="voucher_number" name="voucher_number" value="{{ filters.voucher_number if filters.voucher_number }}">
+                    </div>
+                    <div class="col-md-2">
+                        <label for="description" class="form-label">البيان</label>
+                        <input type="text" class="form-control form-control-sm" id="description" name="description" value="{{ filters.description if filters.description }}">
+                    </div>
+                    <div class="col-md-4">
+                        <label for="account_id" class="form-label">الحساب</label>
+                        <div class="input-group input-group-sm">
+                            <select class="form-select form-select-sm" id="account_id" name="account_id">
+                                <option value="">-- الكل --</option>
+                                {% for account in accounts %}
+                                <option value="{{ account.id }}" {% if filters.account_id and filters.account_id|int == account.id %}selected{% endif %}>{{ account.code }} - {{ account.name }}</option>
+                                {% endfor %}
+                            </select>
+                            <button type="button" class="btn btn-outline-secondary search-account-btn" title="بحث عن حساب">
+                                <i class="bi bi-search"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <label for="voucher_type" class="form-label">نوع السند</label>
+                        <select class="form-select form-select-sm" id="voucher_type" name="voucher_type">
+                            <option value="">-- الكل --</option>
+                            <option value="journal" {% if filters.voucher_type == 'journal' %}selected{% endif %}>قيد يومية</option>
+                            <option value="payment" {% if filters.voucher_type == 'payment' %}selected{% endif %}>سند صرف</option>
+                            <option value="receipt" {% if filters.voucher_type == 'receipt' %}selected{% endif %}>سند قبض</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label for="cost_center_id" class="form-label">مركز التكلفة</label>
+                        <select class="form-select form-select-sm" id="cost_center_id" name="cost_center_id">
+                            <option value="">-- الكل --</option>
+                            {% for cc in cost_centers %}
+                            <option value="{{ cc.id }}" {% if filters.cost_center_id and filters.cost_center_id|int == cc.id %}selected{% endif %}>{{ cc.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                   <div class="col-md-2">
+                        <label for="debit_from" class="form-label">المبلغ المدين من</label>
+                        <input type="number" step="0.01" min="0" class="form-control form-control-sm" id="debit_from" name="debit_from" value="{{ filters.debit_from if filters.debit_from }}">
+                    </div>
+                    <div class="col-md-2">
+                        <label for="debit_to" class="form-label">المبلغ المدين إلى</label>
+                        <input type="number" step="0.01" min="0" class="form-control form-control-sm" id="debit_to" name="debit_to" value="{{ filters.debit_to if filters.debit_to }}">
+                    </div>
+                    <div class="col-md-2">
+                        <label for="credit_from" class="form-label">المبلغ الدائن من</label>
+                        <input type="number" step="0.01" min="0" class="form-control form-control-sm" id="credit_from" name="credit_from" value="{{ filters.credit_from if filters.credit_from }}">
+                    </div>
+                    <div class="col-md-2">
+                        <label for="credit_to" class="form-label">المبلغ الدائن إلى</label>
+                        <input type="number" step="0.01" min="0" class="form-control form-control-sm" id="credit_to" name="credit_to" value="{{ filters.credit_to if filters.credit_to }}">
+                    </div>
+                    <div class="col-md-12 text-end">
+                        <button type="submit" class="btn btn-primary btn-sm">
+                            <i class="bi bi-search"></i> بحث
+                        </button>
+                        <a href="{{ url_for('journal_vouchers_report_view') }}" class="btn btn-secondary btn-sm">
+                            <i class="bi bi-x-circle"></i> إلغاء الفلترة
+                        </a>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- جدول النتائج -->
+    <div class="card shadow">
+        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">نتائج البحث</h5>
+            <span class="badge bg-light text-dark">عدد النتائج: {{ vouchers_data|length }}</span>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-striped table-bordered table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>رقم القيد</th>
+                            <th>رقم سند الصرف</th>
+                            <th>رقم سند القبض</th>
+                            <th>التاريخ</th>
+                            <th>رقم الحساب</th>
+                            <th>اسم الحساب</th>
+                            <th>البيان</th>
+                            <th>مدين</th>
+                            <th>دائن</th>
+                            <th>رقم مركز التكلفة</th>
+                            <th>اسم مركز التكلفة</th>
+                            <th>منشئ القيد</th>
+                            <th>نوع السند</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in vouchers_data %}
+                        <tr>
+                            <td>
+                                <a href="{{ url_for('view_journal_voucher', voucher_id=item.voucher_id) }}">
+                                    {{ item.voucher_number }}
+                                </a>
+                            </td>
+                            <td>
+                                {% if item.payment_voucher_number %}
+                                <a href="{{ url_for('view_payment_voucher', voucher_id=item.payment_voucher_id) }}">
+                                    {{ item.payment_voucher_number }}
+                                </a>
+                                {% else %}
+                                {{ item.payment_voucher_number or '' }}
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if item.receipt_voucher_number %}
+                                <a href="{{ url_for('view_receipt_voucher', voucher_id=item.receipt_voucher_id) }}">
+                                    {{ item.receipt_voucher_number }}
+                                </a>
+                                {% else %}
+                                {{ item.receipt_voucher_number or '' }}
+                                {% endif %}
+                            </td>
+                            <td>{{ item.voucher_date }}</td>
+                            <td>{{ item.account_code }}</td>
+                            <td>{{ item.account_name }}</td>
+                            <td>{{ item.description }}</td>
+                            <td class="text-end">{{ "%.2f"|format(item.debit) if item.debit > 0 else '' }}</td>
+                            <td class="text-end">{{ "%.2f"|format(item.credit) if item.credit > 0 else '' }}</td>
+                            <td>{{ item.cost_center_id or '' }}</td>
+                            <td>{{ item.cost_center_name or '' }}</td>
+                            <td>{{ item.created_by }}</td>
+                            <td>{{ item.voucher_type }}</td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="13" class="text-center text-muted py-3">
+                                <i class="bi bi-exclamation-triangle me-2"></i> لا توجد بيانات للعرض.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- مودال البحث عن الحساب -->
+<div class="modal fade" id="searchAccountModal" tabindex="-1" aria-labelledby="searchAccountModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="searchAccountModalLabel">بحث عن حساب</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="إغلاق"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <div class="input-group">
+                        <input type="text" class="form-control" id="account-search-input" placeholder="ابحث بالرمز أو الاسم...">
+                        <button class="btn btn-primary" type="button" id="search-account-btn">
+                            <i class="bi bi-search"></i> بحث
+                        </button>
+                    </div>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover" id="accounts-search-results">
+                        <thead>
+                            <tr>
+                                <th>الرمز</th>
+                                <th>الاسم</th>
+                                <th>اختيار</th>
+                            </tr>
+                        </thead>
+                        <tbody id="account-search-results">
+                            <!-- ستتم إضافة نتائج البحث هنا -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // زر البحث عن الحساب
+        const searchAccountBtn = document.querySelector('.search-account-btn');
+        const accountSelect = document.getElementById('account_id');
+        const searchModal = document.getElementById('searchAccountModal');
+        const accountSearchInput = document.getElementById('account-search-input');
+        const searchResultsTable = document.getElementById('account-search-results');
+        const searchAccountBtnModal = document.getElementById('search-account-btn');
+        
+        // تهيئة المودال
+        const modalInstance = new bootstrap.Modal(searchModal);
+        
+        // فتح مودال البحث عند النقر على زر البحث
+        searchAccountBtn.addEventListener('click', function() {
+            modalInstance.show();
+            setTimeout(() => {
+                accountSearchInput.focus();
+            }, 500);
+        });
+        
+        // تنفيذ البحث عند الضغط على زر البحث في المودال
+        searchAccountBtnModal.addEventListener('click', function() {
+            searchAccounts();
+        });
+        
+        // تنفيذ البحث عند الضغط على Enter في حقل البحث
+        accountSearchInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                searchAccounts();
+            }
+        });
+        
+        // وظيفة البحث عن الحسابات
+        function searchAccounts() {
+            const searchTerm = accountSearchInput.value.trim();
+            if (!searchTerm) {
+                // إذا كان حقل البحث فارغًا، عرض جميع الحسابات
+                displayAllAccounts();
+                return;
+            }
+            
+            // إظهار مؤشر التحميل
+            searchResultsTable.innerHTML = '<tr><td colspan="3" class="text-center">جاري البحث...</td></tr>';
+            
+            // البحث في الحسابات المتاحة في القائمة المنسدلة
+            const accounts = Array.from(accountSelect.options)
+                .filter(option => option.value !== '') // استبعاد خيار "الكل"
+                .filter(option => {
+                    const text = option.textContent.toLowerCase();
+                    return text.includes(searchTerm.toLowerCase());
+                })
+                .map(option => ({
+                    id: option.value,
+                    text: option.textContent,
+                    code: option.textContent.split(' - ')[0],
+                    name: option.textContent.split(' - ')[1] || option.textContent
+                }));
+            
+            // عرض نتائج البحث
+            displaySearchResults(accounts);
+        }
+        
+        // عرض جميع الحسابات
+        function displayAllAccounts() {
+            const accounts = Array.from(accountSelect.options)
+                .filter(option => option.value !== '') // استبعاد خيار "الكل"
+                .map(option => ({
+                    id: option.value,
+                    text: option.textContent,
+                    code: option.textContent.split(' - ')[0],
+                    name: option.textContent.split(' - ')[1] || option.textContent
+                }));
+            
+            displaySearchResults(accounts);
+        }
+        
+        // عرض نتائج البحث
+        function displaySearchResults(accounts) {
+            searchResultsTable.innerHTML = '';
+            
+            if (accounts.length === 0) {
+                searchResultsTable.innerHTML = '<tr><td colspan="3" class="text-center">لا توجد نتائج مطابقة</td></tr>';
+                return;
+            }
+            
+            accounts.forEach(account => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${account.code}</td>
+                    <td>${account.name}</td>
+                    <td>
+                        <button type="button" class="btn btn-sm btn-primary select-account-btn" 
+                                data-account-id="${account.id}">
+                            اختيار
+                        </button>
+                    </td>
+                `;
+                searchResultsTable.appendChild(row);
+                
+                // إضافة حدث النقر على زر الاختيار
+                row.querySelector('.select-account-btn').addEventListener('click', function() {
+                    accountSelect.value = account.id;
+                    modalInstance.hide();
+                });
+            });
+        }
+        
+        // عرض جميع الحسابات عند فتح المودال
+        searchModal.addEventListener('shown.bs.modal', function() {
+            displayAllAccounts();
+        });
+    });
+</script>
+{% endblock %}

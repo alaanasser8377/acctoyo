@@ -1,0 +1,26 @@
+{% extends 'base.html' %}
+{% block title %}تعديل بيانات الشركة{% endblock %}
+{% block content %}
+<div class="container mt-5">
+    <h2 class="mb-4">تعديل بيانات الشركة</h2>
+    <form method="post">
+        <div class="mb-3">
+            <label for="companyName" class="form-label">اسم الشركة</label>
+            <input type="text" class="form-control" id="companyName" name="companyName" value="{{ company.companyName }}">
+        </div>
+        <div class="mb-3">
+            <label for="commercialRegistrationNumber" class="form-label">رقم السجل التجاري</label>
+            <input type="text" class="form-control" id="commercialRegistrationNumber" name="commercialRegistrationNumber" value="{{ company.commercialRegistrationNumber }}">
+        </div>
+        <div class="mb-3">
+            <label for="taxIdentificationNumber" class="form-label">الرقم الضريبي</label>
+            <input type="text" class="form-control" id="taxIdentificationNumber" name="taxIdentificationNumber" value="{{ company.taxIdentificationNumber }}">
+        </div>
+        <div class="mb-3">
+            <label for="logoPath" class="form-label">مسار الشعار</label>
+            <input type="text" class="form-control bg-light" id="logoPath" name="logoPath" value="{{ company.logoPath }}" readonly disabled>
+        </div>
+        <button type="submit" class="btn btn-primary">حفظ التعديلات</button>
+    </form>
+</div>
+{% endblock %}

@@ -1,0 +1,63 @@
+/* static/css/custom_style.css */
+
+/* تصغير حجم خط العناوين الرئيسية للصفحات */
+/* يمكنك استخدام h1, h2 أو فئة مخصصة مثل .page-title */
+.page-title {
+  font-size: 1.5rem; /* جرب قيماً مختلفة مثل 1.4rem, 20px */
+  margin-bottom: 1rem; /* إضافة هامش سفلي إذا لزم الأمر */
+  /* font-weight: 600; */ /* تعديل سماكة الخط إذا أردت */
+}
+
+/* إضافة مسافة بادئة لأسماء الحسابات في الجدول بناءً على المستوى */
+/* استخدام data-level attribute لتمرير المستوى من HTML */
+.account-name-cell {
+  /* حساب المسافة البادئة: 20px لكل مستوى */
+  /* var(--level, 0) تعني استخدام قيمة المتغير --level أو 0 إذا لم يكن معرفاً */
+  padding-right: calc(var(--level, 0) * 25px); /* استخدام padding-right للعربية */
+  /* يمكنك إضافة رمز صغير للشجرة إذا أردت */
+  /* position: relative; */
+}
+
+/* (اختياري) إضافة رمز بسيط قبل الحسابات الفرعية */
+.account-name-cell[style*="--level: 0"]::before {
+    /* لا شيء للحسابات الجذرية */
+    content: "";
+    /* يمكنك إضافة أيقونة جذر هنا إذا أردت */
+}
+
+/* (اختياري) تنسيق إضافي لصف الجدول */
+.table tbody tr {
+    border-bottom: 1px solid #eee; /* خط فاصل خفيف بين الصفوف */
+}
+.table tbody tr:hover {
+    background-color: #f9f9f9; /* تغيير لون الخلفية عند مرور الماوس */
+}
+
+/* تنسيق العناصر النشطة في القائمة المنسدلة */
+.sidebar .dropdown-item.active {
+    background-color: rgba(0, 0, 0, 0.2);
+    color: #000;
+    font-weight: bold;
+}
+
+/* تحسين مظهر التقارير */
+.report-container {
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+.report-header {
+    border-bottom: 1px solid #eee;
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+}
+
+.report-title {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #333;
+}
+

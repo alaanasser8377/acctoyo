@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تقرير الأرباح والخسائر</title>
+    <style>
+        @media print {
+            @page {
+                size: portrait;
+                margin: 1cm;
+            }
+        }
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 10px;
+            direction: rtl;
+        }
+        .report-header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .report-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        .report-subtitle {
+            font-size: 14px;
+            margin-bottom: 5px;
+        }
+        .report-date {
+            font-size: 12px;
+            margin-bottom: 20px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+            margin-bottom: 20px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 5px;
+            text-align: right;
+        }
+        th {
+            background-color: #f2f2f2;
+            font-weight: bold;
+        }
+        .text-end {
+            text-align: left;
+        }
+        .no-data {
+            text-align: center;
+            padding: 20px;
+        }
+        .page-footer {
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+            text-align: center;
+            font-size: 10px;
+            padding: 5px 0;
+            border-top: 1px solid #ddd;
+        }
+        .page-number:after {
+            content: counter(page);
+        }
+        .total-row {
+            font-weight: bold;
+            background-color: #f2f2f2;
+        }
+        .section-title {
+            font-size: 16px;
+            font-weight: bold;
+            margin: 15px 0 5px 0;
+        }
+        .profit {
+            color: green;
+        }
+        .loss {
+            color: red;
+        }
+    </style>
+</head>
+<body>
+    <div class="report-header">
+        <div class="report-title">تقرير الأرباح والخسائر</div>
+        <div class="report-subtitle">
+            {% if filters.start_date and filters.end_date %}
+            للفترة من {{ filters.start_date }} إلى {{ filters.end_date }}
+            {% elif filters.start_date %}
+            من تاريخ {{ filters.start_date }}
+            {% elif filters.end_date %}
+            حتى تاريخ {{ filters.end_date }}
+            {% endif %}
+        </div>
+        <div class="report-date">تاريخ الطباعة: {{ print_date }}</div>
+    </div>
+
+    <!-- الإيرادات -->
+    <div class="section-title">إجمالي الإيرادات</div>
+    <table>
+        <thead>
+            <tr>
+                <th>البند</th>
+                <th class="text-end">المبلغ</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for revenue in report_data.revenues %}
+            <tr>
+                <td>{{ revenue.name }}</td>
+                <td class="text-end">{{ "%.2f"|format(revenue.amount) }}</td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="2" class="no-data">لا توجد بيانات للعرض</td>
+            </tr>
+            {% endfor %}
+            <tr class="total-row">
+                <th>إجمالي الإيرادات</th>
+                <th class="text-end">{{ "%.2f"|format(report_data.total_revenue) }}</th>
+            </tr>
+        </tbody>
+    </table>
+
+    <!-- المصروفات -->
+    <div class="section-title">إجمالي المصروفات</div>
+    <table>
+        <thead>
+            <tr>
+                <th>البند</th>
+                <th class="text-end">المبلغ</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for expense in report_data.expenses %}
+            <tr>
+                <td>{{ expense.name }}</td>
+                <td class="text-end">{{ "%.2f"|format(expense.amount) }}</td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="2" class="no-data">لا توجد بيانات للعرض</td>
+            </tr>
+            {% endfor %}
+            <tr class="total-row">
+                <th>إجمالي المصروفات</th>
+                <th class="text-end">{{ "%.2f"|format(report_data.total_expense) }}</th>
+            </tr>
+        </tbody>
+    </table>
+
+    <!-- صافي الربح/الخسارة -->
+    <div class="section-title">{% if report_data.is_profit %}صافي الربح{% else %}صافي الخسارة{% endif %}</div>
+    <table>
+        <tbody>
+            <tr>
+                <th style="width: 50%;">{% if report_data.is_profit %}صافي الربح{% else %}صافي الخسارة{% endif %}</th>
+                <td class="text-end {% if report_data.is_profit %}profit{% else %}loss{% endif %}">
+                    {% if report_data.is_profit %}
+                        {{ "%.2f"|format(report_data.net_profit) }}
+                    {% else %}
+                        ({{ "%.2f"|format(report_data.net_profit) }})
+                    {% endif %}
+                </td>
+            </tr>
+        </tbody>
+    </table>
+
+    <div class="page-footer">
+        صفحة <span class="page-number"></span>
+    </div>
+
+    <script>
+        window.onload = function() {
+            window.print();
+        }
+    </script>
+</body>
+</html>

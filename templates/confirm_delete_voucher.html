@@ -1,0 +1,28 @@
+{% extends 'base.html' %}
+
+{% block title %}تأكيد حذف سند الصرف{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="card shadow">
+        <div class="card-header bg-danger text-white">
+            <h5 class="mb-0">تأكيد الحذف</h5>
+        </div>
+        <div class="card-body text-center">
+            <h4 class="mb-4">هل أنت متأكد من حذف سند الصرف رقم {{ voucher_number }}؟</h4>
+            <p class="text-danger mb-4">هذا الإجراء لا يمكن التراجع عنه.</p>
+            
+            <div class="d-flex justify-content-center">
+                <a href="{{ url_for('list_payment_vouchers') }}" class="btn btn-secondary me-3">
+                    <i class="bi bi-x-lg"></i> إلغاء
+                </a>
+                <form method="POST" action="{{ url_for('delete_payment_voucher', voucher_id=voucher_id) }}">
+                    <button type="submit" class="btn btn-danger">
+                        <i class="bi bi-trash"></i> تأكيد الحذف
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

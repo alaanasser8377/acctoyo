@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>طباعة سند صرف #{{ voucher.voucher_number }}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.rtl.min.css" rel="stylesheet">
+    <style>
+        @media print {
+            .no-print {
+                display: none !important;
+            }
+            body {
+                font-size: 12pt;
+            }
+            .container {
+                width: 100%;
+                max-width: 100%;
+            }
+            /* إضافة نمط الطباعة بشكل عمودي */
+            @page {
+                size: portrait;
+            }
+            /* ضمان ظهور الألوان أثناء الطباعة */
+            .voucher-header, .table-header {
+                background-color: #b3e0ff !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+        }
+        .print-header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .voucher-header {
+            background-color: #b3e0ff;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .voucher-info {
+            margin-bottom: 20px;
+        }
+        .voucher-details {
+            border: 1px solid #dee2e6;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        .print-footer {
+            margin-top: 30px;
+            text-align: center;
+        }
+        .signature-area {
+            margin-top: 50px;
+            display: flex;
+            justify-content: space-between;
+        }
+        .signature-box {
+            border-top: 1px solid #000;
+            width: 200px;
+            text-align: center;
+            padding-top: 5px;
+        }
+        .voucher-number {
+            color: #0d47a1;
+            font-weight: bold;
+        }
+        .amount-words {
+            font-weight: bold;
+            margin-top: 10px;
+            padding: 10px;
+            border: 1px dashed #dee2e6;
+            background-color: #f8f9fa;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-4">
+        <div class="no-print mb-3">
+            <button onclick="window.print()" class="btn btn-primary">
+                <i class="bi bi-printer"></i> طباعة
+            </button>
+            <button onclick="window.close()" class="btn btn-secondary">
+                إغلاق
+            </button>
+        </div>
+
+        <div class="voucher-header">
+            <h2>سند صرف</h2>
+            <h4>رقم السند: <span class="voucher-number">{{ voucher.voucher_number }}</span></h4>
+        </div>
+
+        <div class="voucher-info row">
+            <div class="col-md-6">
+                <p><strong>التاريخ:</strong> {{ voucher.voucher_date }}</p>
+                <p><strong>المستفيد:</strong> {{ voucher.beneficiary }}</p>
+            </div>
+            <div class="col-md-6">
+                <p><strong>المبلغ:</strong> {{ "{:,.2f}".format(voucher.amount) }}</p>
+                <p><strong>طريقة الدفع:</strong> {{ voucher.payment_method }}</p>
+                {% if voucher.check_number %}
+                <p><strong>رقم الشيك:</strong> {{ voucher.check_number }}</p>
+                {% endif %}
+                {% if voucher.check_date %}
+                <p><strong>تاريخ الشيك:</strong> {{ voucher.check_date }}</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="amount-words">
+            <p>فقط {{ amount_in_words }} لا غير</p>
+        </div>
+
+        <div class="voucher-details">
+            <h5>البيان:</h5>
+            <p>{{ voucher.description }}</p>
+        </div>
+
+        <div class="signature-area">
+            <div class="signature-box">
+                {% if voucher.payment_method == 'تحويل بنكي' %}
+                تحويل بنكي
+                {% else %}
+                المستلم
+                {% endif %}
+            </div>
+            <div class="signature-box">
+                المحاسب
+            </div>
+            <div class="signature-box">
+                رئيس الحسابات
+            </div>
+        </div>
+
+        <div class="print-footer">
+            <p>تم الطباعة بتاريخ: {{ current_date }}</p>
+        </div>
+    </div>
+
+    <script>
+        // طباعة تلقائية عند فتح الصفحة (اختياري)
+        // window.onload = function() {
+        //     window.print();
+        // }
+    </script>
+</body>
+</html>

@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>طباعة ميزان المراجعة</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            direction: rtl;
+        }
+        .report-header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .report-title {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        .report-period {
+            font-size: 16px;
+            margin-bottom: 5px;
+        }
+        .report-date {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 20px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: right;
+        }
+        th {
+            background-color: #f2f2f2;
+            font-weight: bold;
+        }
+        .numeric {
+            text-align: left;
+        }
+        .account-type-header {
+            background-color: #e6e6e6;
+            font-weight: bold;
+        }
+        .account-type-total {
+            background-color: #f2f2f2;
+            font-weight: bold;
+        }
+        .grand-total {
+            background-color: #d9d9d9;
+            font-weight: bold;
+        }
+        @media print {
+            @page {
+                size: landscape;
+            }
+            body {
+                margin: 0.5cm;
+            }
+            .no-print {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="report-header">
+        <div class="report-title">تقرير ميزان المراجعة</div>
+        <div class="report-period">
+            الفترة من: {{ filters.start_date }} إلى: {{ filters.end_date }}
+        </div>
+        <div class="report-date">تاريخ الطباعة: {{ print_date }}</div>
+    </div>
+    
+    <button class="no-print" onclick="window.print()">طباعة التقرير</button>
+    
+    <table>
+        <thead>
+            <tr>
+                <th rowspan="2">كود الحساب</th>
+                <th rowspan="2">اسم الحساب</th>
+                <th colspan="2">رصيد أول المدة</th>
+                <th colspan="2">حركة الفترة</th>
+                <th colspan="2">مجموع الحركات</th>
+                <th colspan="2">الرصيد</th>
+            </tr>
+            <tr>
+                <th>مدين</th>
+                <th>دائن</th>
+                <th>مدين</th>
+                <th>دائن</th>
+                <th>مدين</th>
+                <th>دائن</th>
+                <th>مدين</th>
+                <th>دائن</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for type_id, type_name in account_types.items() %}
+                {% set type_accounts = report_data.accounts|selectattr('account_type', 'equalto', type_id)|list %}
+                {% if type_accounts %}
+                    <!-- عنوان نوع الحساب -->
+                    <tr class="account-type-header">
+                        <td colspan="10">{{ type_name }}</td>
+                    </tr>
+                    
+                    <!-- حسابات هذا النوع -->
+                    {% for account in type_accounts %}
+                        <tr>
+                            <td>{{ account.code }}</td>
+                            <td>{{ account.name }}</td>
+                            <td class="numeric">{{ '{:,.2f}'.format(account.opening_debit) if account.opening_debit > 0 else '' }}</td>
+                            <td class="numeric">{{ '{:,.2f}'.format(account.opening_credit) if account.opening_credit > 0 else '' }}</td>
+                            <td class="numeric">{{ '{:,.2f}'.format(account.period_debit) if account.period_debit > 0 else '' }}</td>
+                            <td class="numeric">{{ '{:,.2f}'.format(account.period_credit) if account.period_credit > 0 else '' }}</td>
+                            <td class="numeric">{{ '{:,.2f}'.format(account.total_debit) if account.total_debit > 0 else '' }}</td>
+                            <td class="numeric">{{ '{:,.2f}'.format(account.total_credit) if account.total_credit > 0 else '' }}</td>
+                            <td class="numeric">{{ '{:,.2f}'.format(account.balance_debit) if account.balance_debit > 0 else '' }}</td>
+                            <td class="numeric">{{ '{:,.2f}'.format(account.balance_credit) if account.balance_credit > 0 else '' }}</td>
+                        </tr>
+                    {% endfor %}
+                    
+                    <!-- مجموع هذا النوع -->
+                    {% set type_total = report_data.type_totals[type_id] %}
+                    <tr class="account-type-total">
+                        <td colspan="2">إجمالي {{ type_name }}</td>
+                        <td class="numeric">{{ '{:,.2f}'.format(type_total.opening_debit) if type_total.opening_debit > 0 else '' }}</td>
+                        <td class="numeric">{{ '{:,.2f}'.format(type_total.opening_credit) if type_total.opening_credit > 0 else '' }}</td>
+                        <td class="numeric">{{ '{:,.2f}'.format(type_total.period_debit) if type_total.period_debit > 0 else '' }}</td>
+                        <td class="numeric">{{ '{:,.2f}'.format(type_total.period_credit) if type_total.period_credit > 0 else '' }}</td>
+                        <td class="numeric">{{ '{:,.2f}'.format(type_total.total_debit) if type_total.total_debit > 0 else '' }}</td>
+                        <td class="numeric">{{ '{:,.2f}'.format(type_total.total_credit) if type_total.total_credit > 0 else '' }}</td>
+                        <td class="numeric">{{ '{:,.2f}'.format(type_total.balance_debit) if type_total.balance_debit > 0 else '' }}</td>
+                        <td class="numeric">{{ '{:,.2f}'.format(type_total.balance_credit) if type_total.balance_credit > 0 else '' }}</td>
+                    </tr>
+                {% endif %}
+            {% endfor %}
+            
+            <!-- الإجمالي الكلي -->
+            <tr class="grand-total">
+                <td colspan="2">الإجمالي الكلي</td>
+                <td class="numeric">{{ '{:,.2f}'.format(report_data.totals.opening_debit) }}</td>
+                <td class="numeric">{{ '{:,.2f}'.format(report_data.totals.opening_credit) }}</td>
+                <td class="numeric">{{ '{:,.2f}'.format(report_data.totals.period_debit) }}</td>
+                <td class="numeric">{{ '{:,.2f}'.format(report_data.totals.period_credit) }}</td>
+                <td class="numeric">{{ '{:,.2f}'.format(report_data.totals.total_debit) }}</td>
+                <td class="numeric">{{ '{:,.2f}'.format(report_data.totals.total_credit) }}</td>
+                <td class="numeric">{{ '{:,.2f}'.format(report_data.totals.balance_debit) }}</td>
+                <td class="numeric">{{ '{:,.2f}'.format(report_data.totals.balance_credit) }}</td>
+            </tr>
+        </tbody>
+    </table>
+    
+    <script>
+        // تنفيذ الطباعة تلقائيًا عند تحميل الصفحة
+        window.onload = function() {
+            // إضافة تأخير قصير للتأكد من تحميل الصفحة بالكامل
+            setTimeout(function() {
+                window.print();
+            }, 500);
+        };
+    </script>
+</body>
+</html>

@@ -1,0 +1,89 @@
+{% extends 'base.html' %}
+
+{% block title %}عرض سند صرف{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>عرض سند صرف</h2>
+        <div>
+            <a href="{{ url_for('list_payment_vouchers') }}" class="btn btn-secondary">
+                <i class="bi bi-arrow-right"></i> العودة إلى القائمة
+            </a>
+            <a href="{{ url_for('print_payment_voucher', voucher_id=voucher.id) }}" class="btn btn-info" target="_blank">
+                <i class="bi bi-printer"></i> طباعة
+            </a>
+            <a href="{{ url_for('view_journal_voucher', voucher_id=journal_id) }}" class="btn btn-warning">
+                <i class="bi bi-journal-text"></i> عرض قيد اليومية
+            </a>
+            {% if not voucher.is_posted %}
+            <a href="{{ url_for('post_payment_voucher', voucher_id=voucher.id) }}" class="btn btn-success" 
+               onclick="return confirm('هل أنت متأكد من ترحيل سند الصرف رقم {{ voucher.voucher_number }}؟')">
+                <i class="bi bi-check2-square"></i> ترحيل السند
+            </a>
+            {% else %}
+            <a href="{{ url_for('unpost_payment_voucher', voucher_id=voucher.id) }}" class="btn btn-danger" 
+               onclick="return confirm('هل أنت متأكد من فتح ترحيل سند الصرف رقم {{ voucher.voucher_number }}؟')">
+                <i class="bi bi-unlock"></i> فتح الترحيل
+            </a>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="card shadow mb-4">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">تفاصيل سند الصرف رقم: {{ voucher.voucher_number }}</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <strong>رقم السند:</strong> {{ voucher.voucher_number }}
+                </div>
+                <div class="col-md-6 mb-3">
+                    <strong>تاريخ السند:</strong> {{ voucher.voucher_date }}
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <strong>المستفيد:</strong> {{ voucher.beneficiary }}
+                </div>
+                <div class="col-md-6 mb-3">
+                    <strong>المبلغ:</strong> {{ "%.2f"|format(voucher.amount) }}
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <strong>طريقة الدفع:</strong> {{ voucher.payment_method }}
+                </div>
+                <div class="col-md-6 mb-3">
+                    {% if voucher.check_number %}
+                    <strong>رقم الشيك:</strong> {{ voucher.check_number }}
+                    {% endif %}
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <strong>السنة المالية:</strong> {{ voucher.year_name }}
+                </div>
+                <div class="col-md-6 mb-3">
+                    <strong>حالة الترحيل:</strong>
+                    {% if voucher.is_posted %}
+                    <span class="badge bg-success">مرحل</span>
+                    {% if voucher.posted_by_name %}
+                    <small class="text-muted">بواسطة: {{ voucher.posted_by_name }} في {{ voucher.posted_at }}</small>
+                    {% endif %}
+                    {% else %}
+                    <span class="badge bg-warning">غير مرحل</span>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-12 mb-3">
+                    <strong>البيان:</strong>
+                    <p>{{ voucher.description }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

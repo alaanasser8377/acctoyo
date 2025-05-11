@@ -1,0 +1,58 @@
+<!-- templates/cost_centers.html -->
+{% extends 'base.html' %}
+
+{% block title %}مراكز التكلفة{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h2 class="page-title">مراكز التكلفة</h2> {# <--- إضافة فئة page-title هنا #}
+    <a href="{{ url_for('add_cost_center_form') }}" class="btn btn-success">
+        <i class="fas fa-plus"></i> إضافة مركز تكلفة جديد
+    </a>
+</div>
+
+{% if cost_centers %}
+<div class="table-responsive">
+    <table class="table table-striped table-hover">
+        <thead>
+            <tr>
+                <th>الكود</th>
+                <th>الاسم</th>
+                <th>إجراءات</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for center in cost_centers %}
+            <tr>
+                <td>{{ center.code or '-' }}</td>
+                <td>{{ center.name }}</td>
+                <td>
+                    <a href="{{ url_for('edit_cost_center_form', center_id=center.id) }}" class="btn btn-sm btn-outline-primary me-1" title="تعديل">
+                        <i class="fas fa-edit"></i> تعديل
+                    </a>
+                    {% if center.is_used %}
+                    <button class="btn btn-sm btn-outline-secondary" disabled title="لا يمكن حذف مركز التكلفة لأنه قيد الاستخدام">
+                        <i class="fas fa-trash-alt"></i> حذف
+                    </button>
+                    {% else %}
+                    <form action="{{ url_for('delete_cost_center', center_id=center.id) }}" method="POST" class="d-inline" onsubmit="return confirm('هل أنت متأكد من رغبتك في حذف مركز التكلفة هذا؟');">
+                        <button type="submit" class="btn btn-sm btn-outline-danger" title="حذف">
+                            <i class="fas fa-trash-alt"></i> حذف
+                        </button>
+                    </form>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<div class="alert alert-info">لا توجد مراكز تكلفة لعرضها حالياً. يمكنك <a href="{{ url_for('add_cost_center_form') }}">إضافة مركز تكلفة جديد</a>.</div>
+{% endif %}
+{% endblock %}
+
+{% block head_extra %}
+{# إضافة FontAwesome إذا كنت تستخدم أيقوناته (اختياري) #}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" integrity="sha512-9usAa10IRO0HhonpyAIVpjrylPvoDwiPUiKdWk5t3PyolY1cOd4DSE0Ga+ri4AuTroPR5aQvXU9xC6qOPnzFeg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+{% endblock %}

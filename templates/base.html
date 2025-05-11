@@ -1,0 +1,355 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.rtl.min.css" rel="stylesheet" integrity="sha384-dpuaG1suU0eT09tx5plTaGMLBsfDLzUCCUXOY2j/LSvXYuG6Bqs43ALlhIqAJVRb" crossorigin="anonymous">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+    {# --- ربط ملف CSS المخصص --- #}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/custom_style.css') }}">
+
+    <title>{% block title %}نظام المحاسبة{% endblock %}</title>
+
+    <style>
+        body {
+            padding-top: 56px; /* حسب ارتفاع الـ navbar */
+            background-color: #f8f9fa; /* لون خلفية الصفحة العام */
+        }
+        /* --- تنسيقات الشريط الجانبي --- */
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            height: calc(100vh - 56px);
+            position: sticky;
+            top: 56px;
+            background-color: rgba(0, 31, 63, 0.9);
+            padding-top: 1rem;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
+            overflow-y: auto;
+            z-index: 100;
+            border-radius: 0 10px 10px 0;
+            backdrop-filter: blur(5px);
+            margin-right: 0px;
+            transition: all 0.3s ease;
+            min-width: calc(200px + 0.1cm); /* إضافة عرض إضافي 0.5 سم */
+            width: auto; /* السماح بالتمدد التلقائي إذا لزم الأمر */
+        }
+        .sidebar .nav-link {
+            color: #f2f2f2; /* تعديل لون الخط إلى أبيض مشبع */
+            padding: .5rem 1rem;
+            white-space: nowrap;
+            border-radius: 5px; /* حواف دائرية للروابط */
+            margin: 2px 5px; /* هامش بسيط للروابط */
+            transition: all 0.2s ease; /* تأثير انتقالي للروابط */
+        }
+        .sidebar .nav-link:hover {
+            color: #fff;
+            background-color: rgba(255, 255, 255, 0.15);
+            transform: translateX(-3px); /* تأثير حركة بسيط عند التحويم */
+        }
+        .sidebar .nav-link.active {
+            font-weight: bold;
+            color: #fff;
+            background-color: rgba(13, 110, 253, 0.8); /* لون أزرق مع شفافية */
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2); /* ظل خفيف للرابط النشط */
+        }
+        .sidebar .nav-link .bi {
+            margin-left: 8px; /* تعديل لـ margin-left بسبب dir="rtl" */
+            vertical-align: middle;
+            width: 1.25em; /* تحديد عرض ثابت للأيقونة */
+            text-align: center; /* توسيط الأيقونة */
+        }
+        .navbar {
+             box-shadow: 0 .125rem .25rem rgba(0,0,0,.075);
+             background-color: #010013 !important; /* أخضر داكن */
+        }
+
+        /* --- تعديل منطقة المحتوى الرئيسي --- */
+        main.col { /* استهداف العنصر main الذي يحمل الكلاس col */
+            padding: 20px;
+            /* --- يمكنك إلغاء التعليق عن هذا السطر إذا أردت خلفية زرقاء فاتحة للمحتوى --- */
+            /* background-color: lightblue; */ /* أو #ADD8E6 */
+            /* --- اختياري: إضافة حواف دائرية لتحسين المظهر --- */
+            /* border-radius: 8px; */
+            /* --- اختياري: إضافة هامش بسيط إذا لزم الأمر --- */
+            /* margin: 1rem; */ /* قد تحتاج لتعديل هذا حسب التصميم العام */
+        }
+
+        /* --- تنسيقات رسائل الفلاش الصغيرة --- */
+        .flash-alert-small {
+            font-size: 0.85rem; /* تصغير حجم الخط */
+            padding: 0.5rem 0.75rem; /* تقليل الحشو الداخلي */
+            margin-bottom: 0.5rem; /* تقليل المسافة السفلية */
+        }
+        .flash-alert-small .btn-close {
+            padding: 0.4rem 0.6rem; /* تصغير حجم زر الإغلاق */
+        }
+        
+        /* --- تنسيقات القائمة المنسدلة في الشريط الجانبي --- */
+        .sidebar .dropdown-menu {
+            background-color: #87CEEB; /* تغيير إلى اللون الأزرق السماوي */
+            border: none;
+            border-radius: 8px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            margin-top: 5px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .sidebar .dropdown-item {
+            color: rgba(0, 0, 0, 0.8); /* تغيير لون النص إلى أسود مع شفافية للتناسب مع الخلفية الفاتحة */
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            margin: 2px 5px;
+        }
+        
+        .sidebar .dropdown-item:hover {
+            background-color: rgba(0, 0, 0, 0.1); /* تغيير لون التحويم ليتناسب مع الخلفية الجديدة */
+            color: black; /* تغيير لون النص عند التحويم إلى أسود كامل */
+        }
+        
+        /* --- تأثير التمرير السلس --- */
+        html {
+            scroll-behavior: smooth;
+        }
+    </style>
+    {% block head_extra %}{% endblock %}
+</head>
+<body>
+
+    {# --- شريط التنقل العلوي (Navbar) --- #}
+    <nav class="navbar navbar-expand-md navbar-dark bg-dark fixed-top">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="{{ url_for('financial_performance.financial_performance_report_view') }}">
+                <img src="{{ url_for('static', filename='images/logo.png') }}" alt="ACC TOO YOU" height="30" class="d-inline-block align-text-top me-2" style="filter: drop-shadow(0 0 3px rgba(255,255,255,0.4)); border-radius: 5px; transition: all 0.3s ease; mix-blend-mode: screen;">
+                {{ company_profile.companyName if company_profile else "Acc Too You" }}
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarMain" aria-controls="navbarMain" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarMain">
+                <ul class="navbar-nav me-auto mb-2 mb-md-0">
+                    <li class="nav-item">
+                        <span class="nav-link text-light">
+                            <small><i class="bi bi-building"></i> س.ت: {{ company_profile.commercialRegistrationNumber if company_profile }}</small>
+                        </span>
+                    </li>
+                    <li class="nav-item">
+                        <span class="nav-link text-light">
+                            <small><i class="bi bi-receipt"></i> ر.ض: {{ company_profile.taxIdentificationNumber if company_profile }}</small>
+                        </span>
+                    </li>
+                </ul>
+                <ul class="navbar-nav ms-auto mb-2 mb-md-0">
+                    {% if session.user_id %}
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" id="navbarDropdownUser" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="bi bi-person-circle me-1"></i> {{ session.full_name or session.username }} {# إضافة me-1 للأيقونة #}
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdownUser">
+                                {# يمكنك إضافة روابط أخرى هنا مثل تغيير كلمة المرور #}
+                                <li><a class="dropdown-item" href="{{ url_for('logout') }}"><i class="bi bi-box-arrow-right me-2"></i>تسجيل الخروج</a></li>
+                            </ul>
+                        </li>
+                    {% else %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('login') }}">تسجيل الدخول</a>
+                        </li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid">
+        <div class="row g-0"> {# استخدام g-0 لإزالة المسافات بين الأعمدة #}
+            {# --- الشريط الجانبي (Sidebar) --- #}
+            {% if session.user_id %} {# إظهار الشريط الجانبي فقط للمستخدمين المسجلين #}
+            <nav id="sidebarMenu" class="col-auto sidebar">
+                <ul class="nav flex-column">
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'dashboard' %}active{% endif %}" aria-current="page" href="{{ url_for('financial_performance.financial_performance_report_view') }}">
+                            <i class="bi bi-house-door-fill"></i>
+                            <span class="link-text">لوحة التحكم</span>
+                        </a>
+                    </li>
+                    
+                    {# --- رابط تقارير الأداء المالي --- #}
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle {% if request.endpoint.startswith('journal_vouchers_report') or request.endpoint.startswith('account_statement') or request.endpoint.startswith('profit_loss') or request.endpoint.startswith('trial_balance') or request.endpoint.startswith('balance_sheet') or request.endpoint.startswith('profit_loss_by_cc') or request.endpoint.startswith('financial_performance') %}active{% endif %}" href="#" id="reportsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="bi bi-file-earmark-bar-graph"></i>
+                            <span class="link-text">التقارير</span>
+                        </a>
+                        <ul class="dropdown-menu" aria-labelledby="reportsDropdown">
+                            <li>
+                                <a class="dropdown-item {% if request.endpoint.startswith('journal_vouchers_report') %}active{% endif %}" href="{{ url_for('journal_vouchers_report_view') }}">
+                                    <i class="bi bi-journal-text"></i> تقرير قيود اليومية
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item {% if request.endpoint.startswith('account_statement') %}active{% endif %}" href="{{ url_for('account_statement.account_statement_report_view') }}">
+                                    <i class="bi bi-file-earmark-text"></i> كشف حساب
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item {% if request.endpoint.startswith('ledger.') %}active{% endif %}" href="{{ url_for('ledger.ledger_report_view') }}">
+                                    <i class="bi bi-book"></i> دفتر الأستاذ
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item {% if request.endpoint.startswith('profit_loss.') %}active{% endif %}" href="{{ url_for('profit_loss.profit_loss_report_view') }}">
+                                    <i class="bi bi-bar-chart-fill"></i> الأرباح والخسائر
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item {% if request.endpoint.startswith('trial_balance') %}active{% endif %}" href="{{ url_for('trial_balance.trial_balance_report_view') }}">
+                                    <i class="bi bi-list-columns"></i> ميزان المراجعة
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item {% if request.endpoint.startswith('balance_sheet') %}active{% endif %}" href="{{ url_for('balance_sheet.balance_sheet_report_view') }}">
+                                    <i class="bi bi-clipboard-data"></i> الميزانية العمومية
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item {% if request.endpoint.startswith('profit_loss_by_cc') %}active{% endif %}" href="{{ url_for('profit_loss_by_cc.profit_loss_by_cost_center_view') }}">
+                                    <i class="bi bi-pie-chart-fill"></i> أرباح وخسائر مراكز 
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item {% if request.endpoint.startswith('financial_performance') %}active{% endif %}" href="{{ url_for('financial_performance.financial_performance_report_view') }}">
+                                    <i class="bi bi-graph-up"></i> الأداء المالي
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
+                    
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint.startswith('manage_financial_years') or request.endpoint.startswith('add_financial_year') or request.endpoint.startswith('edit_financial_year') %}active{% endif %}" href="{{ url_for('manage_financial_years') }}">
+                            <i class="bi bi-calendar-check"></i>
+                            <span class="link-text">السنوات المالية</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint.startswith('list_cost_centers') or request.endpoint.startswith('add_cost_center') or request.endpoint.startswith('edit_cost_center') %}active{% endif %}" href="{{ url_for('list_cost_centers') }}">
+                            <i class="bi bi-journal-richtext"></i>
+                            <span class="link-text">مراكز التكلفة</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint.startswith('list_accounts') or request.endpoint.startswith('add_account') or request.endpoint.startswith('edit_account') %}active{% endif %}" href="{{ url_for('list_accounts') }}">
+                            <i class="bi bi-diagram-3"></i> {# تغيير الأيقونة لشيء مختلف قليلاً #}
+                            <span class="link-text">شجرة الحسابات</span>
+                        </a>
+                    </li>
+                    {# --- رابط قيود اليومية المضاف --- #}
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint.startswith('list_journal_vouchers') or request.endpoint.startswith('add_journal_voucher') %}active{% endif %}" href="{{ url_for('list_journal_vouchers') }}">
+                          <i class="bi bi-journal-text"></i> {# أيقونة مناسبة لقيود اليومية #}
+                          <span class="link-text">قيود اليومية</span>
+                        </a>
+                    </li>
+                    
+                    {# --- رابط سندات الصرف --- #}
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint.startswith('list_payment_vouchers') or request.endpoint.startswith('add_payment_voucher') or request.endpoint.startswith('edit_payment_voucher') or request.endpoint.startswith('view_payment_voucher') %}active{% endif %}" href="{{ url_for('list_payment_vouchers') }}">
+                          <i class="bi bi-cash-coin"></i> {# أيقونة مناسبة لسندات الصرف #}
+                          <span class="link-text">سندات الصرف</span>
+                        </a>
+                    </li>
+                    {# --- رابط سندات القبض --- #}
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint.startswith('list_receipt_vouchers') or request.endpoint.startswith('add_receipt_voucher') or request.endpoint.startswith('edit_receipt_voucher') or request.endpoint.startswith('view_receipt_voucher') %}active{% endif %}" href="{{ url_for('list_receipt_vouchers') }}">
+                          <i class="bi bi-cash"></i>
+                          <span class="link-text">سندات القبض</span>
+                        </a>
+                    </li>
+                    
+                    {# --- قائمة الإعدادات --- #}
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle {% if request.endpoint.startswith('edit_company_profile') or request.endpoint.startswith('manage_users') %}active{% endif %}" href="#" id="settingsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="bi bi-gear"></i>
+                            <span class="link-text">الإعدادات</span>
+                        </a>
+                        <ul class="dropdown-menu" aria-labelledby="settingsDropdown">
+                            <li>
+                                <a class="dropdown-item {% if request.endpoint.startswith('edit_company_profile') %}active{% endif %}" href="{{ url_for('edit_company_profile') }}">
+                                    <i class="bi bi-building-gear"></i>
+                                    تعديل بيانات الشركة
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item {% if request.endpoint.startswith('manage_users') %}active{% endif %}" href="{{ url_for('manage_users') }}">
+                                    <i class="bi bi-people-fill"></i>
+                                    إدارة المستخدمين
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
+                    {# --- يمكنك إضافة فاصل هنا إذا أردت تجميع الروابط --- #}
+                    {# <hr class="text-light"> #}
+                </ul>
+            </nav>
+            {% endif %} {# نهاية شرط إظهار الشريط الجانبي #}
+
+            {# --- منطقة المحتوى الرئيسي --- #}
+            <main class="col">
+                 {# --- حاوية رسائل الفلاش --- #}
+                 <div id="flash-messages-container" class="position-relative"> {# جعل الحاوية relative لتحديد موقع الرسائل #}
+                     {% with messages = get_flashed_messages(with_categories=true) %}
+                        {% if messages %}
+                            {% for category, message in messages %}
+                                {# --- إضافة الفئة flash-alert-small وتغليف الرسالة بـ small --- #}
+                                <div class="alert alert-{{ category }} alert-dismissible fade show mt-3 flash-alert-small" role="alert">
+                                    <small>{{ message }}</small>
+                                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                                </div>
+                            {% endfor %}
+                        {% endif %}
+                     {% endwith %}
+                 </div>
+                 {# --- نهاية حاوية رسائل الفلاش --- #}
+
+                {% block content %}{% endblock %} {# المحتوى الخاص بكل صفحة #}
+            </main>
+        </div>
+    </div>
+
+    <!-- Bootstrap Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+
+    {# --- يمكنك إضافة ملفات JavaScript مخصصة هنا --- #}
+    {# <script src="{{ url_for('static', filename='js/script.js') }}"></script> #}
+
+    {# --- JavaScript لإخفاء رسائل الفلاش تلقائيًا بعد فترة --- #}
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const flashContainer = document.getElementById('flash-messages-container');
+            if (flashContainer) {
+                const alerts = flashContainer.querySelectorAll('.alert');
+                alerts.forEach(alert => {
+                    // إخفاء التنبيه بعد 5 ثوانٍ (5000 ميلي ثانية)
+                    setTimeout(() => {
+                        if (typeof bootstrap !== 'undefined' && bootstrap.Alert) {
+                            const alertInstance = bootstrap.Alert.getOrCreateInstance(alert);
+                            if (alertInstance) {
+                                alertInstance.close();
+                            } else {
+                                alert.style.display = 'none'; // Fallback
+                            }
+                        } else {
+                            alert.style.display = 'none'; // Fallback
+                        }
+                    }, 5000); // 5 ثوانٍ
+                });
+            }
+        });
+    </script>
+
+    {% block scripts %}{% endblock %}
+</body>
+</html>

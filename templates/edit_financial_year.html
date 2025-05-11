@@ -1,0 +1,68 @@
+{% extends 'base.html' %}
+
+{% block title %}تعديل السنة المالية: {{ year.year_name }}{% endblock %}
+
+{% block content %}
+<h1 class="h3 mb-3">تعديل السنة المالية: <span class="text-primary">{{ year.year_name }}</span></h1>
+
+<div class="row">
+    <div class="col-md-8 col-lg-6">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                {# النموذج يرسل البيانات إلى نفس المسار مع معرف السنة #}
+                <form method="POST" action="{{ url_for('edit_financial_year', year_id=year.id) }}">
+
+                    <div class="mb-3">
+                        <label for="year_name" class="form-label">اسم السنة المالية <span class="text-danger">*</span></label>
+                        {# نعرض اسم السنة الحالي. يمكن جعله للقراءة فقط إذا لم تسمح بتغييره #}
+                        {# إذا سمحت بتغييره، ستحتاج لتحقق إضافي لعدم تكراره #}
+                        <input type="text" class="form-control" id="year_name" name="year_name"
+                               value="{{ form_data.year_name if form_data else year.year_name }}" required
+                               placeholder="مثال: 2024 أو 2023-2024">
+                        {# يمكنك إضافة رسائل خطأ هنا #}
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="start_date" class="form-label">تاريخ البدء <span class="text-danger">*</span></label>
+                            <input type="date" class="form-control" id="start_date" name="start_date"
+                                   value="{{ form_data.start_date if form_data else year.start_date }}" required>
+                            {# يمكنك إضافة رسائل خطأ هنا #}
+                        </div>
+                        <div class="col-md-6">
+                            <label for="end_date" class="form-label">تاريخ الانتهاء <span class="text-danger">*</span></label>
+                            <input type="date" class="form-control" id="end_date" name="end_date"
+                                   value="{{ form_data.end_date if form_data else year.end_date }}" required>
+                            {# يمكنك إضافة رسائل خطأ هنا #}
+                        </div>
+                    </div>
+
+                    <hr>
+
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" id="is_active" name="is_active" value="1"
+                               {% if (form_data and form_data.get('is_active')) or (form_data is none and year.is_active) %}checked{% endif %}>
+                        <label class="form-check-label" for="is_active">
+                            السنة نشطة (تظهر في القوائم)
+                        </label>
+                    </div>
+
+                     <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" id="is_closed" name="is_closed" value="1"
+                               {% if (form_data and form_data.get('is_closed')) or (form_data is none and year.is_closed) %}checked{% endif %}>
+                        <label class="form-check-label" for="is_closed">
+                            السنة مغلقة (لا يمكن إضافة قيود)
+                        </label>
+                    </div>
+
+
+                    <div class="d-flex justify-content-end">
+                         <a href="{{ url_for('manage_financial_years') }}" class="btn btn-secondary me-2">إلغاء</a>
+                        <button type="submit" class="btn btn-primary">حفظ التغييرات</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

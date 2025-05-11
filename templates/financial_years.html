@@ -1,0 +1,113 @@
+{% extends "base.html" %} {# افترض وجود قالب أساسي باسم base.html #}
+
+{% block title %}إدارة السنوات المالية{% endblock %}
+
+{# يمكنك وضع الـ style هنا إذا كان لديك بلوك مخصص في head بملف base.html #}
+{# {% block head_extra %}
+<style>
+    body { /* أو استهدف عنصرًا أكثر تحديدًا إذا أردت */
+        background-color: rgb(255, 255, 255); /* يمكنك استخدام lightblue أو #ADD8E6 */
+    }
+</style>
+{% endblock %} #}
+
+{% block content %}
+{# الطريقة البديلة: وضع الـ style مباشرة هنا لاستهداف الحاوية الرئيسية #}
+<style>
+    /* استهداف الحاوية الرئيسية داخل هذا البلوك */
+    .financial-years-container {
+        background-color: rgba(102, 103, 114, 0.116); /* يمكنك استخدام lightblue أوrgb(14, 235, 50) */
+        padding: 20px; /* إضافة بعض الحشو لتحسين المظهر */
+        border-radius: 8px; /* اختياري: إضافة حواف دائرية */
+    }
+    /* يمكنك أيضًا استهداف الـ body مباشرة من هنا، لكن قد يؤثر على عناصر أخرى إذا لم تكن حذرًا */
+    /*
+    body {
+        background-color: lightblue !important; /* قد تحتاج !important لتجاوز أنماط أخرى */
+    /* }
+    */
+    
+    /* إضافة نمط لتغيير حجم خط العنوان إلى 4em */
+    .financial-years-container h1 {
+        font-size: 1.5em; /* تعيين حجم الخط إلى 4em */
+    }
+</style>
+
+{# أضفنا كلاس للحاوية لتطبيق النمط عليها #}
+<div class="container mt-4 financial-years-container">
+    <h1 class="mb-4">إدارة السنوات المالية</h1>
+
+    <div class="mb-3">
+        <a href="{{ url_for('add_financial_year') }}" class="btn btn-success">
+            <i class="bi bi-plus-circle"></i> إضافة سنة مالية جديدة
+        </a>
+    </div>
+
+    {% if financial_years %}
+    <div class="table-responsive">
+        <table class="table table-striped table-hover align-middle">
+            <thead class="table-light">
+                <tr>
+                    <th>اسم السنة</th>
+                    <th>تاريخ البدء</th>
+                    <th>تاريخ الانتهاء</th>
+                    <th>الحالة (نشطة)</th>
+                    <th>الحالة (مغلقة)</th>
+                    <th style="min-width: 320px;">إجراءات</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for year in financial_years %}
+                <tr>
+                    <td>{{ year.year_name }}</td>
+                    <td>{{ year.start_date }}</td>
+                    <td>{{ year.end_date }}</td>
+                    <td>
+                        {% if year.is_active == 1 %}
+                            <span class="badge bg-success">نشطة</span>
+                        {% else %}
+                            <span class="badge bg-secondary">غير نشطة</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if year.is_closed == 1 %}
+                            <span class="badge bg-danger">مغلقة</span>
+                        {% else %}
+                            <span class="badge bg-info text-dark">مفتوحة</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <div class="d-flex flex-nowrap">
+                            <a href="{{ url_for('edit_financial_year', year_id=year.id) }}" class="btn btn-sm btn-primary me-1" title="تعديل">
+                                <i class="bi bi-pencil-square"></i> تعديل
+                            </a>
+                            <form action="{{ url_for('toggle_financial_year_active', year_id=year.id) }}" method="POST" class="d-inline">
+                                <button type="submit" class="btn btn-sm {% if year.is_active == 1 %}btn-warning{% else %}btn-success{% endif %} me-1" title="{% if year.is_active == 1 %}تعطيل{% else %}تفعيل{% endif %}">
+                                    <i class="bi {% if year.is_active == 1 %}bi-toggle-off{% else %}bi-toggle-on{% endif %}"></i> {% if year.is_active == 1 %}تعطيل{% else %}تفعيل{% endif %}
+                                </button>
+                            </form>
+                            <form action="{{ url_for('toggle_financial_year_closed', year_id=year.id) }}" method="POST" class="d-inline">
+                                <button type="submit" class="btn btn-sm {% if year.is_closed == 1 %}btn-info text-dark{% else %}btn-secondary{% endif %} me-1" title="{% if year.is_closed == 1 %}فتح{% else %}إغلاق{% endif %}">
+                                    <i class="bi {% if year.is_closed == 1 %}bi-unlock{% else %}bi-lock{% endif %}"></i> {% if year.is_closed == 1 %}فتح{% else %}إغلاق{% endif %}
+                                </button>
+                            </form>
+                            <form action="{{ url_for('delete_financial_year', year_id=year.id) }}" method="POST" class="d-inline" onsubmit="return confirm('هل أنت متأكد من رغبتك في حذف هذه السنة المالية؟ لا يمكن التراجع عن هذا الإجراء.');">
+                                <button type="submit" class="btn btn-sm btn-danger" title="حذف">
+                                    <i class="bi bi-trash"></i> حذف
+                                </button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="alert alert-info" role="alert">
+        لا توجد سنوات مالية لعرضها. يمكنك <a href="{{ url_for('add_financial_year') }}">إضافة سنة جديدة</a>.
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+

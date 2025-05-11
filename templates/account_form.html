@@ -1,0 +1,179 @@
+<!-- templates/account_form.html -->
+{% extends 'base.html' %}
+
+{% block title %}{{ form_title }}{% endblock %}
+
+{% block content %}
+<div class="row">
+    {# الشريط الجانبي لعرض الحسابات الحالية (اختياري) #}
+    <div class="col-md-4 order-md-2 mb-4">
+        <h4 class="d-flex justify-content-between align-items-center mb-3">
+            <span class="text-muted">الحسابات الحالية</span>
+        </h4>
+        {% if existing_accounts %}
+        <ul class="list-group mb-3" style="max-height: 600px; overflow-y: auto;">
+            {% for acc in existing_accounts %}
+            <li class="list-group-item d-flex justify-content-between lh-sm" style="padding-right: calc(1rem + {{ acc.level }} * 20px);"> {# مسافة بادئة بسيطة هنا أيضاً #}
+                <div>
+                    <small class="text-muted">{{ acc.code }}</small>
+                    <h6 class="my-0">{{ acc.name }}</h6>
+                </div>
+                <span class="text-muted">{{ account_types.get(acc.account_type, '') }}</span>
+            </li>
+            {% endfor %}
+        </ul>
+        {% else %}
+        <p class="text-muted">لا توجد حسابات لعرضها.</p>
+        {% endif %}
+    </div>
+
+    {# نموذج الإضافة/التعديل #}
+    <div class="col-md-8 order-md-1">
+        <h2 class="mb-3 page-title">{{ form_title }}</h2> {# <--- إضافة فئة page-title هنا #}
+
+        <form action="{{ form_action }}" method="POST" novalidate>
+            {# حقول النموذج (الكود، الاسم، النوع، الأب، إلخ) #}
+            {# استخدم form_data أو account لملء القيم الأولية إذا كانت موجودة #}
+            {% set current_data = form_data or account %}
+
+            <div class="row g-3">
+                <div class="col-sm-6">
+                    <label for="code" class="form-label">رمز الحساب <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="code" name="code" value="{{ current_data.code if current_data else '' }}" required>
+                    {# يمكنك إضافة رسائل خطأ التحقق هنا #}
+                </div>
+
+                <div class="col-sm-6">
+                    <label for="name" class="form-label">اسم الحساب <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="name" name="name" value="{{ current_data.name if current_data else '' }}" required>
+                </div>
+
+                <div class="col-md-6">
+                    <label for="account_type" class="form-label">نوع الحساب <span class="text-danger">*</span></label>
+                    <select class="form-select" id="account_type" name="account_type" required>
+                        <option value="" {% if not current_data or not current_data.account_type %}selected{% endif %}>اختر...</option>
+                        {% for type_id, type_name in account_types.items() %}
+                        <option value="{{ type_id }}" {% if current_data and current_data.account_type == type_id %}selected{% endif %}>{{ type_name }}</option>
+                        {% endfor %}
+                    </select>
+                    <small class="form-text text-muted" id="account_type_hint">
+                        سيتم تحديد نوع الحساب تلقائيًا بناءً على رمز الحساب
+                    </small>
+                </div>
+
+                <div class="col-md-6">
+                    <label for="parent_id" class="form-label">الحساب الأصل (اختياري)</label>
+                    <select class="form-select" id="parent_id" name="parent_id">
+                        <option value="None" {% if not current_data or not current_data.parent_id %}selected{% endif %}>-- لا يوجد (حساب رئيسي) --</option>
+                        {% for parent in parent_accounts %}
+                        {# لا تعرض الحساب الحالي كأب محتمل لنفسه في وضع التعديل #}
+                        {% if not account or parent.id != account.id %}
+                           <option value="{{ parent.id }}" {% if current_data and current_data.parent_id == parent.id %}selected{% endif %}>
+                               {{ parent.code }} - {{ parent.name }}
+                           </option>
+                        {% endif %}
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="col-12">
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" role="switch" id="is_active" name="is_active" value="1" {% if current_data is none or current_data.is_active %}checked{% endif %}>
+                        <label class="form-check-label" for="is_active">الحساب نشط</label>
+                    </div>
+                </div>
+
+                 <div class="col-12">
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" role="switch" id="allows_posting" name="allows_posting" value="1" {% if current_data is none or current_data.allows_posting %}checked{% endif %}>
+                        <label class="form-check-label" for="allows_posting">يسمح بالترحيل المباشر إليه</label>
+                    </div>
+                    <small class="form-text text-muted">
+                        عادةً الحسابات الرئيسية (التي لها أبناء) لا تسمح بالترحيل المباشر.
+                    </small>
+                </div>
+
+            </div> {# نهاية .row.g-3 #}
+
+            <hr class="my-4">
+
+            <button class="btn btn-primary btn-lg" type="submit">
+                {% if account %}حفظ التعديلات{% else %}إضافة الحساب{% endif %}
+            </button>
+            <a href="{{ url_for('list_accounts') }}" class="btn btn-secondary btn-lg">إلغاء</a>
+        </form>
+    </div> {# نهاية .col-md-8 #}
+</div> {# نهاية .row #}
+{% endblock %}
+
+{% block head_extra %}
+{# إضافة FontAwesome إذا كنت تستخدم أيقوناته (اختياري) #}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" integrity="sha512-9usAa10IRO0HhonpyAIVpjrylPvoDwiPUiKdWk5t3PyolY1cOd4DSE0Ga+ri4AuTroPR5aQvXU9xC6qOPnzFeg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const codeInput = document.getElementById('code');
+        const accountTypeSelect = document.getElementById('account_type');
+        const accountTypeHint = document.getElementById('account_type_hint');
+        
+        // تعريف قواعد تحديد نوع الحساب بناءً على الرمز
+        const accountTypeRules = [
+            { pattern: /^1\d*$/, typeId: '1', typeName: 'أصول' },
+            { pattern: /^11\d*$/, typeId: '1', typeName: 'أصول متداولة' },
+            { pattern: /^12\d*$/, typeId: '1', typeName: 'أصول ثابتة' },
+            { pattern: /^2\d*$/, typeId: '2', typeName: 'خصوم' },
+            { pattern: /^21\d*$/, typeId: '2', typeName: 'خصوم متداولة' },
+            { pattern: /^22\d*$/, typeId: '2', typeName: 'خصوم طويلة الأجل' },
+            { pattern: /^3\d*$/, typeId: '3', typeName: 'حقوق ملكية' },
+            { pattern: /^4\d*$/, typeId: '4', typeName: 'إيرادات' },
+            { pattern: /^5\d*$/, typeId: '5', typeName: 'مصروفات' }
+        ];
+        
+        // دالة لتحديد نوع الحساب بناءً على الرمز
+        function detectAccountType(code) {
+            if (!code) return null;
+            
+            // البحث عن القاعدة المطابقة
+            for (const rule of accountTypeRules) {
+                if (rule.pattern.test(code)) {
+                    return rule.typeId;
+                }
+            }
+            
+            return null;
+        }
+        
+        // إضافة مستمع للأحداث على حقل الرمز
+        codeInput.addEventListener('input', function() {
+            const code = this.value.trim();
+            const detectedType = detectAccountType(code);
+            
+            if (detectedType) {
+                // تحديد نوع الحساب تلقائيًا
+                accountTypeSelect.value = detectedType;
+                
+                // تحديث الرسالة التوضيحية
+                const selectedOption = accountTypeSelect.options[accountTypeSelect.selectedIndex];
+                accountTypeHint.textContent = `تم تحديد نوع الحساب تلقائيًا: ${selectedOption.textContent}`;
+                accountTypeHint.classList.add('text-success');
+                accountTypeHint.classList.remove('text-muted');
+            } else {
+                // إعادة الرسالة التوضيحية إلى الحالة الافتراضية
+                accountTypeHint.textContent = 'سيتم تحديد نوع الحساب تلقائيًا بناءً على رمز الحساب';
+                accountTypeHint.classList.remove('text-success');
+                accountTypeHint.classList.add('text-muted');
+            }
+        });
+        
+        // تشغيل الكشف التلقائي عند تحميل الصفحة إذا كان هناك رمز موجود بالفعل
+        if (codeInput.value) {
+            // إطلاق حدث input لتنفيذ الكشف التلقائي
+            const inputEvent = new Event('input');
+            codeInput.dispatchEvent(inputEvent);
+        }
+    });
+</script>
+{% endblock %}

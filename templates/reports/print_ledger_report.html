@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>طباعة تقرير دفتر الأستاذ</title>
+    <style>
+        @media print {
+            @page {
+                size: A4 landscape;
+                margin: 1cm;
+            }
+        }
+        body {
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 20px;
+            direction: rtl;
+        }
+        .report-header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .report-title {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        .report-subtitle {
+            font-size: 16px;
+            margin-bottom: 5px;
+        }
+        .print-date {
+            font-size: 12px;
+            margin-bottom: 20px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        th, td {
+            border: 1px solid #000;
+            padding: 8px;
+            text-align: center;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        .text-left {
+            text-align: left;
+        }
+        .text-center {
+            text-align: center;
+        }
+        .total-row {
+            font-weight: bold;
+            background-color: #f2f2f2;
+        }
+        .no-data {
+            text-align: center;
+            padding: 20px;
+        }
+        .account-info {
+            margin-bottom: 15px;
+            font-weight: bold;
+            font-size: 16px;
+        }
+    </style>
+</head>
+<body>
+    <div class="report-header">
+        <div class="report-title">تقرير دفتر الأستاذ</div>
+        {% if report_data.parent_account %}
+        <div class="report-subtitle">
+            الحساب الرئيسي: {{ report_data.parent_account.code }} - {{ report_data.parent_account.name }} ({{ account_types[report_data.parent_account.account_type] }})
+        </div>
+        {% endif %}
+        <div class="report-subtitle">
+            الفترة: 
+            {% if filters.start_date %}من {{ filters.start_date }}{% endif %}
+            {% if filters.end_date %} إلى {{ filters.end_date }}{% endif %}
+        </div>
+        <div class="print-date">تاريخ الطباعة: {{ print_date }}</div>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th rowspan="2">كود الحساب</th>
+                <th rowspan="2">اسم الحساب</th>
+                <th colspan="2">رصيد أول المدة</th>
+                <th colspan="2">حركة الفترة</th>
+                <th colspan="2">مجموع الحركات</th>
+                <th colspan="2">الرصيد</th>
+            </tr>
+            <tr>
+                <th>مدين</th>
+                <th>دائن</th>
+                <th>مدين</th>
+                <th>دائن</th>
+                <th>مدين</th>
+                <th>دائن</th>
+                <th>مدين</th>
+                <th>دائن</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% if report_data.accounts %}
+                {% for account in report_data.accounts %}
+                <tr>
+                    <td>{{ account.code }}</td>
+                    <td>{{ account.name }}</td>
+                    <td class="text-left">{{ '{:,.2f}'.format(account.opening_debit) if account.opening_debit > 0 else '' }}</td>
+                    <td class="text-left">{{ '{:,.2f}'.format(account.opening_credit) if account.opening_credit > 0 else '' }}</td>
+                    <td class="text-left">{{ '{:,.2f}'.format(account.period_debit) if account.period_debit > 0 else '' }}</td>
+                    <td class="text-left">{{ '{:,.2f}'.format(account.period_credit) if account.period_credit > 0 else '' }}</td>
+                    <td class="text-left">{{ '{:,.2f}'.format(account.total_debit) if account.total_debit > 0 else '' }}</td>
+                    <td class="text-left">{{ '{:,.2f}'.format(account.total_credit) if account.total_credit > 0 else '' }}</td>
+                    <td class="text-left">{{ '{:,.2f}'.format(account.balance_debit) if account.balance_debit > 0 else '' }}</td>
+                    <td class="text-left">{{ '{:,.2f}'.format(account.balance_credit) if account.balance_credit > 0 else '' }}</td>
+                </tr>
+                {% endfor %}
+                <!-- صف المجموع -->
+                <tr class="total-row">
+                    <td colspan="2" class="text-center">الإجمالي</td>
+                    <td class="text-left">{{ '{:,.2f}'.format(report_data.totals.opening_debit) if report_data.totals.opening_debit > 0 else '' }}</td>
+                    <td class="text-left">{{ '{:,.2f}'.format(report_data.totals.opening_credit) if report_data.totals.opening_credit > 0 else '' }}</td>
+                    <td class="text-left">{{ '{:,.2f}'.format(report_data.totals.period_debit) if report_data.totals.period_debit > 0 else '' }}</td>
+                    <td class="text-left">{{ '{:,.2f}'.format(report_data.totals.period_credit) if report_data.totals.period_credit > 0 else '' }}</td>
+                    <td class="text-left">{{ '{:,.2f}'.format(report_data.totals.total_debit) if report_data.totals.total_debit > 0 else '' }}</td>
+                    <td class="text-left">{{ '{:,.2f}'.format(report_data.totals.total_credit) if report_data.totals.total_credit > 0 else '' }}</td>
+                    <td class="text-left">{{ '{:,.2f}'.format(report_data.totals.balance_debit) if report_data.totals.balance_debit > 0 else '' }}</td>
+                    <td class="text-left">{{ '{:,.2f}'.format(report_data.totals.balance_credit) if report_data.totals.balance_credit > 0 else '' }}</td>
+                </tr>
+            {% else %}
+                <tr>
+                    <td colspan="10" class="no-data">لا توجد بيانات للعرض</td>
+                </tr>
+            {% endif %}
+        </tbody>
+    </table>
+
+    <script>
+        window.onload = function() {
+            window.print();
+        }
+    </script>
+</body>
+</html>
