@@ -371,7 +371,7 @@ def generate_pdf(data, headers, title, filename="export.pdf", column_widths=None
 
 
 # !!! هام جداً: قم بتغيير هذا المفتاح السري إلى قيمة قوية وعشوائية في بيئة الإنتاج !!!
-app.secret_key = 'your_very_secret_key_here_please_change_me' # الرجاء تغيير هذا المفتاح
+app.secret_key = os.environ.get('SECRET_KEY', 'your_very_secret_key_here_please_change_me') # الرجاء تغيير هذا المفتاح
 
 # --- وظائف مساعدة (يمكن نقلها لوحدة منفصلة لاحقاً) ---
 def is_logged_in():
@@ -4439,6 +4439,6 @@ def get_cost_centers():
 
 # نقطة بداية تشغيل التطبيق
 if __name__ == '__main__':
-    # debug=True مفيد أثناء التطوير لعرض الأخطاء وتحديث الخادم تلقائياً
-    # يجب تعطيله في بيئة الإنتاج (debug=False)
-    app.run(debug=True)
+    # استخدام المنفذ الذي توفره منصة الاستضافة أو المنفذ 5000 افتراضياً
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port)
